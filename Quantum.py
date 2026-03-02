@@ -467,7 +467,7 @@ def respond(voice_data):
                     check_cmd = f'mdfind "kMDItemKind == Application && kMDItemFSName == \'{app_to_open}.app\'" 2>/dev/null'
                     result = os.popen(check_cmd).read().strip()
 
-                    if result or app_name.lower() in mac_apps:
+                    if result:
                         os.system(f'open -a "{app_to_open}" 2>/dev/null')
                         reply(f"Opening {app_to_open}")
                     else:
@@ -702,34 +702,95 @@ def respond(voice_data):
         else:
             reply("What should I search on Stack Overflow?")
 
-    # TRANSLATION (using Google Translate)
+    # TRANSLATION (direct translation)
     elif 'translate' in voice_data:
         try:
             parts = voice_data.split(' to ')
             if len(parts) == 2:
                 text = parts[0].replace('translate', '').strip()
                 target_lang = parts[1].strip()
-                lang_codes = {
-                    'spanish': 'es', 'french': 'fr', 'german': 'de', 'italian': 'it',
-                    'portuguese': 'pt', 'russian': 'ru', 'japanese': 'ja', 'chinese': 'zh',
-                    'hindi': 'hi', 'arabic': 'ar', 'korean': 'ko'
-                }
-                lang_code = lang_codes.get(target_lang.lower(), target_lang[:2])
-                url = f'https://translate.google.com/?sl=auto&tl={lang_code}&text={text.replace(" ", "%20")}'
-                webbrowser.get().open(url)
-                reply(f"Translating '{text}' to {target_lang}")
+
+                if text:
+                    try:
+                        from googletrans import Translator
+                        translator = Translator()
+
+                        # Language code mapping
+                        lang_codes = {
+                            'spanish': 'es', 'french': 'fr', 'german': 'de', 'italian': 'it',
+                            'portuguese': 'pt', 'russian': 'ru', 'japanese': 'ja', 'chinese': 'zh',
+                            'hindi': 'hi', 'arabic': 'ar', 'korean': 'ko', 'dutch': 'nl',
+                            'swedish': 'sv', 'polish': 'pl', 'turkish': 'tr', 'greek': 'el'
+                        }
+                        lang_code = lang_codes.get(target_lang.lower(), target_lang[:2])
+
+                        # Perform translation
+                        result = translator.translate(text, dest=lang_code)
+                        reply(f"'{text}' in {target_lang} is: {result.text}")
+                    except ImportError:
+                        reply("Translation library not installed. Install with: pip install googletrans==4.0.0-rc1")
+                    except Exception as e:
+                        print(f"Translation error: {e}")
+                        reply("Translation failed. Try again or check your internet connection.")
+                else:
+                    reply("What should I translate?")
             else:
                 reply("Use format: translate hello to spanish")
         except:
             reply("Translation format: translate hello to spanish")
 
-    # DICTIONARY DEFINITION
+    # DICTIONARY DEFINITION (direct answer)
     elif 'define' in voice_data:
         word = voice_data.replace('define', '').strip()
         if word:
-            url = f'https://www.google.com/search?q=define+{word}'
-            webbrowser.get().open(url)
-            reply(f"Looking up the definition of {word}")
+            try:
+                import urllib.request
+                import json
+
+                # Use Free Dictionary API (no key required)
+                api_url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+
+                with urllib.request.urlopen(api_url, timeout=5) as response:
+                    data = json.loads(response.read().decode('utf-8'))
+
+                    if data and len(data) > 0:
+                        # Get first meaning
+                        entry = data[0]
+                        meanings = entry.get('meanings', [])
+
+                        if meanings:
+                            first_meaning = meanings[0]
+                            part_of_speech = first_meaning.get('partOfSpeech', '')
+                            definitions = first_meaning.get('definitions', [])
+
+                            if definitions:
+                                definition_text = definitions[0].get('definition', '')
+                                example = definitions[0].get('example', '')
+
+                                response_text = f"{word}"
+                                if part_of_speech:
+                                    response_text += f" ({part_of_speech})"
+                                response_text += f": {definition_text}"
+
+                                if example:
+                                    response_text += f" <br>Example: {example}"
+
+                                reply(response_text)
+                            else:
+                                reply(f"Sorry, no definition found for {word}")
+                        else:
+                            reply(f"Sorry, no definition found for {word}")
+                    else:
+                        reply(f"Sorry, couldn't find a definition for {word}")
+
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    reply(f"Word '{word}' not found in dictionary. Check your spelling.")
+                else:
+                    reply("Dictionary service unavailable. Check your internet connection.")
+            except Exception as e:
+                print(f"Definition error: {e}")
+                reply("Couldn't fetch definition. Check your internet connection.")
         else:
             reply("What word should I define?")
 
