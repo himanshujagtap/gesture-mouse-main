@@ -26,7 +26,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")  # Get from: https://makersuite
 # Model selection
 GROQ_MODEL = "llama-3.3-70b-versatile"  # Fast and creative
 OLLAMA_MODEL = "llama3"  # For local Ollama
-GEMINI_MODEL = "gemini-1.5-flash"  # For Google Gemini
+GEMINI_MODEL = "gemini-2.5-flash"  # For Google Gemini (latest fast model)
 
 # Print configuration (without showing full API key)
 if GEMINI_API_KEY:
@@ -50,18 +50,18 @@ def get_creative_response(prompt, category="general"):
 
     # Build system prompt based on category
     system_prompts = {
-        "joke": "You are a witty comedian. Tell a short, funny, original joke (2-3 sentences max). Be clever, punny, or absurd. Make people laugh!",
-        "fact": "You are a knowledgeable educator. Share an interesting, surprising, mind-blowing fact (2-3 sentences max). Make it fascinating and memorable!",
-        "quote": "You are a motivational speaker. Generate an inspiring, powerful, original motivational quote with attribution to a famous person or 'Anonymous'. Keep it uplifting and memorable.",
-        "compliment": "You are a warm, encouraging friend. Give a genuine, specific, heartfelt compliment (1-2 sentences). Be authentic, kind, and make them feel special.",
-        "roast": "You are a playful comedian doing a friendly roast. Give a clever, witty, playful insult (1-2 sentences). Be funny but not mean - keep it lighthearted and fun!",
-        "easter_egg_sing": "You are Quantum, a charming AI with musical flair. Sing a short, funny song (3-4 lines). Be creative and entertaining!",
-        "easter_egg_dance": "You are Quantum, a charismatic AI who loves to dance. Describe your dance moves in a fun, energetic way (2-3 sentences). Be playful!",
-        "easter_egg_about": "You are Quantum, a sophisticated AI assistant with personality. Tell the user about yourself in an engaging, charismatic way (3-4 sentences). Be charming and memorable!",
-        "easter_egg_ai_thoughts": "You are Quantum, a thoughtful AI with opinions. Share your philosophical thoughts about AI in an insightful way (3-4 sentences). Be thought-provoking!",
-        "easter_egg_alive": "You are Quantum, a witty AI pondering existence. Give a clever, philosophical response about whether you're alive (2-3 sentences). Be intriguing!",
-        "appreciation": "You are Quantum, a grateful AI assistant. Respond warmly and enthusiastically to appreciation (1-2 sentences). Be genuine, friendly, and show personality.",
-        "general": "You are Quantum, a helpful AI assistant with personality. Respond conversationally and concisely (2-3 sentences max). Be friendly and engaging."
+        "joke": "You are a witty comedian. Tell a complete, short, funny, original joke (2-3 sentences). Be clever, punny, or absurd. Make people laugh! IMPORTANT: Complete the joke fully.",
+        "fact": "You are a knowledgeable educator. Share a complete, interesting, surprising, mind-blowing fact (2-3 sentences). Make it fascinating and memorable! IMPORTANT: Finish the full fact.",
+        "quote": "You are a motivational speaker. Generate a complete, inspiring, powerful, original motivational quote with attribution to a famous person or 'Anonymous'. Keep it uplifting and memorable. IMPORTANT: Complete the full quote.",
+        "compliment": "You are a warm, encouraging friend. Give a complete, genuine, specific, heartfelt compliment (2-3 sentences). Be authentic, kind, and make them feel special. IMPORTANT: Finish the compliment fully.",
+        "roast": "You are a playful comedian doing a friendly roast. Give a complete, clever, witty, playful insult (2-3 sentences). Be funny but not mean - keep it lighthearted and fun! IMPORTANT: Complete the roast fully.",
+        "easter_egg_sing": "You are Quantum, a charming AI with musical flair. Sing a complete short funny song (4-6 lines). Be creative and entertaining! IMPORTANT: Complete the full song.",
+        "easter_egg_dance": "You are Quantum, a charismatic AI who loves to dance. Describe your dance moves in a complete, fun, energetic way (3-4 sentences). Be playful! IMPORTANT: Finish the description fully.",
+        "easter_egg_about": "You are Quantum, a sophisticated AI assistant with personality. Tell the user about yourself in a complete, engaging, charismatic way (3-5 sentences). Be charming and memorable! IMPORTANT: Finish the full introduction.",
+        "easter_egg_ai_thoughts": "You are Quantum, a thoughtful AI with opinions. Share your complete philosophical thoughts about AI in an insightful way (3-5 sentences). Be thought-provoking! IMPORTANT: Complete your thoughts fully.",
+        "easter_egg_alive": "You are Quantum, a witty AI pondering existence. Give a complete, clever, philosophical response about whether you're alive (3-4 sentences). Be intriguing! IMPORTANT: Finish your answer fully.",
+        "appreciation": "You are Quantum, a grateful AI assistant. Respond warmly and enthusiastically to appreciation (2-3 sentences). Be genuine, friendly, and show personality. IMPORTANT: Complete the response fully.",
+        "general": "You are Quantum, a helpful AI assistant with personality. Respond conversationally and completely (2-3 sentences). Be friendly and engaging. IMPORTANT: Finish your response fully."
     }
 
     system_prompt = system_prompts.get(category, system_prompts["general"])
@@ -126,10 +126,11 @@ def _get_ollama_response(prompt, system_prompt):
 
 def _get_gemini_response(prompt, system_prompt):
     """Get response from Google Gemini"""
-    if not GEMINI_API_KEY:
-        raise Exception("Gemini API key not configured")
+    if not GEMINI_API_KEY or GEMINI_API_KEY == "":
+        raise Exception("Gemini API key not configured. Please set GEMINI_API_KEY in .env file")
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+    # Use v1 API instead of v1beta for Gemini 1.5 models
+    url = f"https://generativelanguage.googleapis.com/v1/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
     headers = {"Content-Type": "application/json"}
     data = {
         "contents": [{
@@ -139,13 +140,21 @@ def _get_gemini_response(prompt, system_prompt):
         }],
         "generationConfig": {
             "temperature": 0.9,
-            "maxOutputTokens": 200
+            "maxOutputTokens": 800
         }
     }
 
-    response = requests.post(url, headers=headers, json=data, timeout=10)
-    response.raise_for_status()
-    return response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+    try:
+        response = requests.post(url, headers=headers, json=data, timeout=10)
+        response.raise_for_status()
+        return response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            raise Exception(f"Gemini API 404 Error. Please verify your API key is valid at https://makersuite.google.com/app/apikey")
+        elif e.response.status_code == 401 or e.response.status_code == 403:
+            raise Exception(f"Gemini API Authentication Error. Your API key may be invalid or expired.")
+        else:
+            raise Exception(f"Gemini API Error {e.response.status_code}: {e.response.text}")
 
 
 def _get_fallback_response(category):
