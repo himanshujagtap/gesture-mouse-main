@@ -53,11 +53,20 @@ try:
             pass
         raise ImportError(msg)    
     from enum import IntEnum
-    from ctypes import cast, POINTER
-    from comtypes import CLSCTX_ALL
-    from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
     from google.protobuf.json_format import MessageToDict
-    import screen_brightness_control as sbcontrol
+
+    # Windows-specific imports (optional on macOS/Linux)
+    WINDOWS_FEATURES_AVAILABLE = False
+    try:
+        from ctypes import cast, POINTER
+        from comtypes import CLSCTX_ALL
+        from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+        import screen_brightness_control as sbcontrol
+        WINDOWS_FEATURES_AVAILABLE = True
+        print("✓ Windows audio/brightness control loaded", flush=True)
+    except ImportError as e:
+        print(f"ℹ Note: Windows-specific features not available on this platform", flush=True)
+        print(f"  (Volume/brightness control disabled. Mouse control, clicking, scrolling will work normally.)", flush=True)
 
     pyautogui.FAILSAFE = False
     mp_drawing = mp.solutions.drawing_utils
@@ -351,6 +360,8 @@ class Controller:
     
     def changesystembrightness():
         """Incrementally adjusts system brightness based on pinch movement delta."""
+        if not WINDOWS_FEATURES_AVAILABLE:
+            return  # Gracefully skip on macOS/Linux
         currentBrightnessLv = sbcontrol.get_brightness(display=0)/100.0
         # Use smaller increment for smoother control
         currentBrightnessLv += Controller.pinchlv * 0.02
@@ -362,6 +373,8 @@ class Controller:
     
     def changesystemvolume():
         """Incrementally adjusts system volume based on pinch movement delta."""
+        if not WINDOWS_FEATURES_AVAILABLE:
+            return  # Gracefully skip on macOS/Linux
         devices = AudioUtilities.GetSpeakers()
         interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         volume = cast(interface, POINTER(IAudioEndpointVolume))
@@ -650,8 +663,14 @@ class GestureController:
 
         try:
             # Create a resizable window for better visibility
-            cv2.namedWindow('Gesture Controller', cv2.WINDOW_NORMAL)
-            cv2.resizeWindow('Gesture Controller', 1280, 720)  # Set larger window size
+            # On macOS, window creation might fail - handle gracefully
+            window_available = True
+            try:
+                cv2.namedWindow('Gesture Controller', cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Gesture Controller', 1280, 720)  # Set larger window size
+            except Exception as e:
+                logging.warning(f"Could not create OpenCV window: {e}. Running in headless mode.")
+                window_available = False
 
             with mp_hands.Hands(max_num_hands = 2,min_detection_confidence=0.5, min_tracking_confidence=0.5) as hands:
                 while GestureController.cap.isOpened() and GestureController.gc_mode:
@@ -687,10 +706,21 @@ class GestureController:
                             mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
                     else:
                         Controller.prev_hand = None
-                    cv2.imshow('Gesture Controller', image)
-                    if cv2.waitKey(5) & 0xFF in (13, 27, ord('q')):
-                        logging.info("Exit key pressed.")
-                        break
+
+                    # Only show window if it was created successfully
+                    if window_available:
+                        try:
+                            cv2.imshow('Gesture Controller', image)
+                        except:
+                            window_available = False  # Disable future attempts
+                    # Handle keyboard input (skip on macOS if running headless)
+                    try:
+                        if cv2.waitKey(5) & 0xFF in (13, 27, ord('q')):
+                            logging.info("Exit key pressed.")
+                            break
+                    except:
+                        # On macOS headless mode, just continue without keyboard check
+                        pass
         except KeyboardInterrupt:
             logging.info("Interrupted by user.")
         except Exception as e:

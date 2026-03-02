@@ -16,16 +16,25 @@ import Gesture_Controller
 #import Gesture_Controller_Gloved as Gesture_Controller
 import app
 from threading import Thread
+import platform
+
+# Detect OS for keyboard shortcuts
+IS_MAC = platform.system() == 'Darwin'
+CMD_KEY = Key.cmd if IS_MAC else Key.ctrl
 
 
 # -------------Object Initialization---------------
 today = date.today()
 r = sr.Recognizer()
 keyboard = Controller()
-engine = pyttsx3.init('sapi5')
-engine = pyttsx3.init()
+# Initialize text-to-speech (cross-platform)
+if IS_MAC:
+    engine = pyttsx3.init()  # macOS/Linux (uses nsss)
+else:
+    engine = pyttsx3.init('sapi5')  # Windows
 voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[0].id)
+if voices:
+    engine.setProperty('voice', voices[0].id)
 
 # ----------------Variables------------------------
 file_exp_status = False
@@ -152,13 +161,13 @@ def respond(voice_data):
             reply('Gesture recognition is already inactive')
         
     elif 'copy' in voice_data:
-        with keyboard.pressed(Key.ctrl):
+        with keyboard.pressed(CMD_KEY):
             keyboard.press('c')
             keyboard.release('c')
         reply('Copied')
           
     elif 'page' in voice_data or 'pest'  in voice_data or 'paste' in voice_data:
-        with keyboard.pressed(Key.ctrl):
+        with keyboard.pressed(CMD_KEY):
             keyboard.press('v')
             keyboard.release('v')
         reply('Pasted')
@@ -225,6 +234,9 @@ t1.start()
 # Lock main thread until Chatbot has started
 while not app.ChatBot.started:
     time.sleep(0.5)
+
+# Give Eel a moment to fully initialize
+time.sleep(1)
 
 wish()
 voice_data = None
