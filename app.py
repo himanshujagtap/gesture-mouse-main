@@ -54,13 +54,14 @@ class ChatBot:
             'list', 'open', 'back', 'sleep', 'go to sleep', 'exit', 'terminate', 'wake up',
             # New commands
             'calculate', 'convert 5 km to miles', 'convert 100 celsius to fahrenheit',
-            'youtube search', 'github search', 'stackoverflow',
+            'youtube search', 'youtube', 'github search', 'github', 'stackoverflow',
             'translate hello to spanish', 'define', 'ip address', 'show ip', 'wifi name',
-            'motivational quote', 'inspire me', 'random fact', 'fun fact',
-            'magic 8 ball', 'compliment me', 'insult me', 'roast me',
+            'motivational quote', 'motivate me', 'inspire me', 'random fact', 'fun fact', 'tell me a fact',
+            'magic 8 ball', 'compliment me', 'say something nice', 'insult me', 'roast me',
             'help', 'commands', 'what can you do',
-            'sing', 'dance', 'tell me about yourself', 'good job', 'thank you',
-            'are you alive', 'what do you think about ai'
+            'sing', 'dance', 'tell me about yourself', 'about yourself',
+            'good job', 'well done', 'great job', 'thank you',
+            'are you alive', 'are you real', 'what do you think about ai'
         ]
 
         partial_lower = partial_input.lower().strip()

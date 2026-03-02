@@ -816,6 +816,8 @@ jarvis lock	os.system('rundll32.exe user32.dll,LockWorkStation')
 
 mac:
 cd "/Users/himanshu/Desktop/final project/gesture-mouse"
+python3 -m venv .venv
 source .venv/bin/activate
+pip install -r requirements-mac.txt
 python Gesture_Controller.py
 python Quantum.py
