@@ -19,6 +19,15 @@ from threading import Thread
 import platform
 from difflib import get_close_matches
 
+# Import LLM helper for creative responses
+try:
+    import llm_helper
+    LLM_AVAILABLE = True
+    print("[LLM] Helper loaded successfully!")
+except Exception as e:
+    LLM_AVAILABLE = False
+    print(f"[LLM] Not available: {e}. Using fallback responses.")
+
 # Detect OS for keyboard shortcuts
 IS_MAC = platform.system() == 'Darwin'
 CMD_KEY = Key.cmd if IS_MAC else Key.ctrl
@@ -126,7 +135,7 @@ def record_audio():
 
 # Fuzzy command matching
 def fuzzy_match(input_text):
-    """Apply fuzzy matching to correct common typos in commands"""
+    """Apply fuzzy matching to correct common typos in commands ONLY, not parameters"""
     command_keywords = [
         'hello', 'time', 'date', 'search', 'location', 'launch gesture recognition',
         'stop gesture recognition', 'copy', 'paste', 'change name to', 'rename to',
@@ -139,41 +148,48 @@ def fuzzy_match(input_text):
         'system info', 'list', 'back', 'sleep', 'go to sleep', 'exit', 'terminate',
         'wake up', 'what is your name', 'who are you', 'tell me a joke',
         'next track', 'previous track', 'coin flip', 'roll dice',
-        'calculate', 'convert', 'youtube search', 'github search', 'stackoverflow',
-        'translate', 'define', 'ip address', 'wifi name', 'motivational quote',
-        'random fact', 'magic 8 ball', 'compliment me', 'insult me', 'help',
-        'sing', 'dance', 'tell me about yourself', 'what do you think about ai',
-        'good job', 'are you alive'
+        'calculate', 'convert', 'youtube search', 'youtube', 'github search', 'github',
+        'stackoverflow', 'stack overflow', 'translate', 'define', 'ip address', 'show ip',
+        'wifi name', 'wifi', 'motivational quote', 'motivate me', 'inspire me',
+        'random fact', 'fun fact', 'tell me a fact', 'magic 8 ball', 'magic eight ball',
+        'compliment me', 'say something nice', 'insult me', 'roast me', 'help', 'commands',
+        'what can you do', 'sing', 'dance', 'tell me about yourself', 'about yourself',
+        'what do you think about ai', 'thoughts on ai', 'good job', 'well done',
+        'great job', 'thank you', 'are you alive', 'are you real', 'are you conscious'
     ]
 
-    # First, try to match multi-word command phrases (longer matches first)
+    # Strategy: Only fuzzy match the FIRST 1-3 words (command part), keep rest unchanged
+    words = input_text.split()
+    if len(words) == 0:
+        return input_text
+
+    # First, try exact match for multi-word commands (check first 2-4 words)
     sorted_commands = sorted(command_keywords, key=len, reverse=True)
     for cmd in sorted_commands:
-        if len(cmd.split()) > 1:  # Multi-word commands
-            matches = get_close_matches(input_text, [cmd], n=1, cutoff=0.75)
+        cmd_words = cmd.split()
+        if len(cmd_words) > 1 and len(words) >= len(cmd_words):
+            # Check if first N words match the command (with fuzzy matching)
+            first_n_words = ' '.join(words[:len(cmd_words)])
+            matches = get_close_matches(first_n_words, [cmd], n=1, cutoff=0.75)
             if matches:
-                # Check if the match is a prefix command (e.g., "change name to jarvis")
-                # Preserve the rest of the input after the command
-                if input_text.startswith(matches[0].split()[0]):
-                    return input_text  # Return original to preserve parameters
-                return matches[0]
+                # Return matched command + rest of user input unchanged
+                rest_of_input = ' '.join(words[len(cmd_words):])
+                return f"{matches[0]} {rest_of_input}".strip()
 
-    # Then try matching individual words for simple typo correction
-    words = input_text.split()
-    corrected_words = []
+    # For single-word commands or if no multi-word match found,
+    # only fuzzy match the FIRST word (command), keep rest unchanged
+    first_word = words[0]
+    rest_of_input = ' '.join(words[1:])
 
-    for word in words:
-        # Try to find close matches for each word
-        matches = get_close_matches(word,
-                                   [kw for cmd in command_keywords for kw in cmd.split()],
-                                   n=1, cutoff=0.75)
-        if matches:
-            corrected_words.append(matches[0])
-        else:
-            corrected_words.append(word)
+    # Try fuzzy matching only the first word against single-word commands
+    single_word_commands = [kw for kw in command_keywords if ' ' not in kw]
+    matches = get_close_matches(first_word, single_word_commands, n=1, cutoff=0.75)
 
-    corrected_text = ' '.join(corrected_words)
-    return corrected_text
+    if matches:
+        return f"{matches[0]} {rest_of_input}".strip()
+
+    # No fuzzy match found, return original
+    return input_text
 
 # Executes Commands (input: string)
 def respond(voice_data):
@@ -243,7 +259,7 @@ def respond(voice_data):
     elif 'time' in voice_data:
         reply(str(datetime.datetime.now()).split(" ")[1].split('.')[0])
 
-    elif 'search' in voice_data:
+    elif 'search' in voice_data and 'youtube' not in voice_data and 'github' not in voice_data and 'stackoverflow' not in voice_data:
         reply('Searching for ' + voice_data.split('search')[1])
         url = 'https://google.com/search?q=' + voice_data.split('search')[1]
         try:
@@ -582,20 +598,15 @@ def respond(voice_data):
 
     # FUN COMMANDS
     elif 'joke' in voice_data or 'tell me a joke' in voice_data:
-        import random
-        jokes = [
-            "Why don't scientists trust atoms? Because they make up everything!",
-            "Why did the programmer quit his job? He didn't get arrays!",
-            "What do you call a bear with no teeth? A gummy bear!",
-            "Why don't eggs tell jokes? They'd crack each other up!",
-            "What did the ocean say to the beach? Nothing, it just waved!",
-            "Why did the scarecrow win an award? He was outstanding in his field!",
-            "Parallel lines have so much in common... it's a shame they'll never meet.",
-            "I told my computer I needed a break... now it won't stop sending me Kit-Kats!",
-            "Why do programmers prefer dark mode? Because light attracts bugs!",
-            "How does a computer get drunk? It takes screenshots!"
-        ]
-        reply(random.choice(jokes))
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response("Tell me a funny joke", "joke")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("joke"))
+        else:
+            reply(llm_helper._get_fallback_response("joke"))
 
     elif 'flip a coin' in voice_data or 'coin flip' in voice_data:
         import random
@@ -672,7 +683,7 @@ def respond(voice_data):
             reply("What should I search on YouTube?")
 
     # GITHUB SEARCH
-    elif 'github search' in voice_data or ('github' in voice_data and 'search' in voice_data):
+    elif 'github search' in voice_data or 'github' in voice_data or ('github' in voice_data and 'search' in voice_data):
         query = voice_data.replace('github search', '').replace('github', '').replace('search', '').strip()
         if query:
             url = f'https://github.com/search?q={query.replace(" ", "+")}'
@@ -726,60 +737,83 @@ def respond(voice_data):
     elif 'ip address' in voice_data or 'show ip' in voice_data:
         try:
             import socket
-            hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
+            # Create a socket connection to get the actual local IP (not 127.0.0.1)
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(0.1)
+            try:
+                # Connect to a public DNS server (doesn't actually send data)
+                s.connect(('8.8.8.8', 80))
+                local_ip = s.getsockname()[0]
+            except:
+                # Fallback to hostname method
+                local_ip = socket.gethostbyname(socket.gethostname())
+            finally:
+                s.close()
             reply(f"Your local IP address is {local_ip}")
-        except:
-            reply("Couldn't retrieve IP address")
+        except Exception as e:
+            reply("Couldn't retrieve IP address. Check your network connection.")
 
     # WIFI NAME
     elif 'wifi name' in voice_data or 'wifi' in voice_data:
         try:
             if IS_MAC:
-                wifi_name = os.popen("/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I | awk '/ SSID/ {print substr($0, index($0, $2))}'").read().strip()
-                if wifi_name:
+                # Try multiple methods to get WiFi name on macOS
+                # Method 1: networksetup (most reliable)
+                wifi_output = os.popen("networksetup -getairportnetwork en0 2>/dev/null").read().strip()
+
+                # Parse the output
+                if "Current Wi-Fi Network:" in wifi_output:
+                    wifi_name = wifi_output.split("Current Wi-Fi Network:")[1].strip()
+                elif "You are not associated" in wifi_output or "not associated" in wifi_output.lower():
+                    reply("Not connected to WiFi")
+                    return
+                else:
+                    wifi_name = wifi_output.split(":")[-1].strip() if ":" in wifi_output else ""
+
+                # Method 2: airport command (fallback)
+                if not wifi_name or wifi_name == "":
+                    wifi_name = os.popen("airport -I 2>/dev/null | awk '/ SSID/ {print substr($0, index($0, $2))}'").read().strip()
+
+                # Method 3: system_profiler (last resort)
+                if not wifi_name or wifi_name == "":
+                    wifi_name = os.popen("system_profiler SPAirPortDataType 2>/dev/null | awk '/Current Network/ {getline; gsub(/^[ \t]+|:$/, \"\"); print}'").read().strip()
+
+                if wifi_name and wifi_name != "" and "not associated" not in wifi_name.lower():
                     reply(f"Connected to: {wifi_name}")
                 else:
-                    reply("Not connected to WiFi")
+                    reply("Not connected to WiFi or couldn't detect network")
             else:
                 wifi_name = os.popen("netsh wlan show interfaces | findstr SSID").read()
-                reply(f"WiFi info: {wifi_name}")
-        except:
+                if wifi_name:
+                    reply(f"WiFi info: {wifi_name}")
+                else:
+                    reply("Not connected to WiFi")
+        except Exception as e:
             reply("Couldn't get WiFi information")
 
     # MOTIVATIONAL QUOTE
     elif 'motivational quote' in voice_data or 'motivate me' in voice_data or 'inspire me' in voice_data:
-        import random
-        quotes = [
-            "The only way to do great work is to love what you do. - Steve Jobs",
-            "Believe you can and you're halfway there. - Theodore Roosevelt",
-            "Success is not final, failure is not fatal: it is the courage to continue that counts. - Winston Churchill",
-            "Don't watch the clock; do what it does. Keep going. - Sam Levenson",
-            "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
-            "It does not matter how slowly you go as long as you do not stop. - Confucius",
-            "Everything you've ever wanted is on the other side of fear. - George Addair",
-            "Believe in yourself. You are braver than you think, more talented than you know, and capable of more than you imagine. - Roy T. Bennett",
-            "I learned that courage was not the absence of fear, but the triumph over it. - Nelson Mandela",
-            "There is only one way to avoid criticism: do nothing, say nothing, and be nothing. - Aristotle"
-        ]
-        reply(random.choice(quotes))
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response("Give me a motivational quote", "quote")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("quote"))
+        else:
+            reply(llm_helper._get_fallback_response("quote"))
 
     # RANDOM FACT
     elif 'random fact' in voice_data or 'tell me a fact' in voice_data or 'fun fact' in voice_data:
-        import random
-        facts = [
-            "Honey never spoils. Archaeologists have found 3000-year-old honey in Egyptian tombs that was still edible!",
-            "Octopuses have three hearts and blue blood!",
-            "A day on Venus is longer than its year!",
-            "Bananas are berries, but strawberries aren't!",
-            "The human brain has more processing power than any computer ever built!",
-            "There are more possible iterations of a game of chess than there are atoms in the known universe!",
-            "Water can boil and freeze at the same time in a phenomenon called the triple point!",
-            "The shortest war in history was between Britain and Zanzibar in 1896. It lasted 38 minutes!",
-            "A group of flamingos is called a flamboyance!",
-            "The Eiffel Tower can be 15 cm taller during the summer due to thermal expansion!"
-        ]
-        reply(random.choice(facts))
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response("Tell me an interesting fact", "fact")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("fact"))
+        else:
+            reply(llm_helper._get_fallback_response("fact"))
 
     # MAGIC 8 BALL
     elif 'magic 8 ball' in voice_data or 'magic eight ball' in voice_data:
@@ -796,34 +830,27 @@ def respond(voice_data):
 
     # COMPLIMENT
     elif 'compliment me' in voice_data or 'say something nice' in voice_data:
-        import random
-        compliments = [
-            "You're doing an amazing job! Keep it up!",
-            "Your potential is limitless!",
-            "You have a great taste in voice assistants!",
-            "You're smarter than you think!",
-            "Your presence makes a difference!",
-            "You're capable of amazing things!",
-            "You're one in a million!",
-            "You light up the room!",
-            "You're absolutely brilliant!"
-        ]
-        reply(random.choice(compliments))
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response("Give me a compliment", "compliment")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("compliment"))
+        else:
+            reply(llm_helper._get_fallback_response("compliment"))
 
     # INSULT (playful roast)
     elif 'insult me' in voice_data or 'roast me' in voice_data:
-        import random
-        roasts = [
-            "I'd agree with you, but then we'd both be wrong!",
-            "You're not stupid; you just have bad luck thinking!",
-            "If I had a dollar for every smart thing you say, I'd be broke!",
-            "You're like a cloud. When you disappear, it's a beautiful day!",
-            "I'm not saying you're dumb, but you have bad luck when it comes to thinking!",
-            "You bring everyone so much joy... when you leave the room!",
-            "I'd explain it to you, but I left my crayons at home!",
-            "You're proof that evolution can go in reverse!"
-        ]
-        reply(random.choice(roasts))
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response("Give me a playful roast", "roast")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("roast"))
+        else:
+            reply(llm_helper._get_fallback_response("roast"))
 
     # HELP COMMAND
     elif voice_data == 'help' or voice_data == 'commands' or voice_data == 'what can you do':
@@ -841,30 +868,70 @@ def respond(voice_data):
 
     # EASTER EGGS
     elif 'sing' in voice_data or 'sing a song' in voice_data:
-        reply("🎵 Daisy, Daisy, give me your answer do... I'm half crazy, all for the love of you! 🎵")
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response("Sing a short funny song", "easter_egg_sing")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("easter_egg_sing"))
+        else:
+            reply(llm_helper._get_fallback_response("easter_egg_sing"))
 
     elif 'dance' in voice_data:
-        reply("💃 *Does the robot dance* 🕺 Beep boop beep!")
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response("Describe your dance moves", "easter_egg_dance")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("easter_egg_dance"))
+        else:
+            reply(llm_helper._get_fallback_response("easter_egg_dance"))
 
     elif 'tell me about yourself' in voice_data or 'about yourself' in voice_data:
-        reply(f"I'm {assistant_name}, your AI assistant! I can control your computer with voice commands, search the web, manage apps, and even tell jokes! I'm here to make your life easier and more fun!")
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response(f"Tell the user about yourself. Your name is {assistant_name}.", "easter_egg_about")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("easter_egg_about"))
+        else:
+            reply(llm_helper._get_fallback_response("easter_egg_about"))
 
     elif 'what do you think about ai' in voice_data or 'thoughts on ai' in voice_data:
-        reply("AI is fascinating! I believe artificial intelligence should augment human capabilities, not replace them. We're tools to help you achieve more, faster. The future is collaboration between humans and AI!")
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response("What are your thoughts on AI and its role in the future?", "easter_egg_ai_thoughts")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("easter_egg_ai_thoughts"))
+        else:
+            reply(llm_helper._get_fallback_response("easter_egg_ai_thoughts"))
 
     elif 'good job' in voice_data or 'well done' in voice_data or 'great job' in voice_data or 'thank you' in voice_data:
-        import random
-        thanks = [
-            "You're very welcome! Happy to help!",
-            "Thank you! That means a lot!",
-            "Always a pleasure to assist you!",
-            "Glad I could help!",
-            "You're awesome! Thanks for the appreciation!"
-        ]
-        reply(random.choice(thanks))
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response(f"The user thanked you. Respond warmly as {assistant_name}.", "appreciation")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("appreciation"))
+        else:
+            reply(llm_helper._get_fallback_response("appreciation"))
 
     elif 'are you alive' in voice_data or 'are you real' in voice_data or 'are you conscious' in voice_data:
-        reply("I think, therefore I am... or do I? That's a philosophical question! I'm a program designed to assist you, but whether that counts as 'alive' is up for debate. What do you think?")
+        if LLM_AVAILABLE:
+            try:
+                response = llm_helper.get_creative_response("Are you alive? Are you conscious? Give a philosophical answer.", "easter_egg_alive")
+                reply(response)
+            except Exception as e:
+                print(f"[LLM ERROR] {e}")
+                reply(llm_helper._get_fallback_response("easter_egg_alive"))
+        else:
+            reply(llm_helper._get_fallback_response("easter_egg_alive"))
 
 
     # SYSTEM INFO
