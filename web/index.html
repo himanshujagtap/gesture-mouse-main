@@ -1,42 +1,711 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Proton</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum AI Assistant</title>
     <script type="text/javascript" src="/eel.js"></script>
     <link rel="stylesheet" type="text/css" href="css/jquery.convform.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #0a0e27;
+            position: relative;
+        }
+
+        /* Animated Gradient Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #0a0e27, #1a1f4e, #2d1b4e, #1a1f4e, #0a0e27);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            z-index: 0;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Floating Particles */
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(138, 180, 248, 0.6);
+            border-radius: 50%;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
+        }
+
+        /* Container */
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(138, 180, 248, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 350px;
+            margin: 0 auto;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(102, 126, 234, 0.8); }
+        }
+
+        .logo-icon i {
+            color: #fff;
+            font-size: 24px;
+        }
+
+        .title {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+
+        .subtitle {
+            color: #8ab4f8;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: blink 2s ease-in-out infinite;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(138, 180, 248, 0.3) transparent;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: rgba(138, 180, 248, 0.3);
+            border-radius: 3px;
+        }
+
+        /* Message Bubbles */
+        .message {
+            margin-bottom: 20px;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.bot {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message.user {
+            display: flex;
+            flex-direction: row-reverse;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .avatar.bot {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
+        }
+
+        .avatar.user {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 0 15px rgba(245, 87, 108, 0.5);
+        }
+
+        .avatar i {
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .bubble {
+            max-width: 250px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .bubble.bot {
+            background: rgba(102, 126, 234, 0.15);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: #e8eaed;
+            backdrop-filter: blur(10px);
+        }
+
+        .bubble.user {
+            background: rgba(245, 87, 108, 0.15);
+            border: 1px solid rgba(245, 87, 108, 0.3);
+            color: #e8eaed;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Input Area */
+        .input-area {
+            padding: 20px;
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid rgba(138, 180, 248, 0.1);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            max-width: 350px;
+            margin: 0 auto;
+            align-items: center;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(138, 180, 248, 0.2);
+            border-radius: 25px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #userInput:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        #userInput::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .submit {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .submit:active {
+            transform: scale(0.95);
+        }
+
+        /* Mode Toggle Button */
+        .mode-toggle {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(138, 180, 248, 0.2);
+            color: #8ab4f8;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(138, 180, 248, 0.3);
+        }
+
+        .mode-toggle:hover {
+            background: rgba(138, 180, 248, 0.3);
+            transform: scale(1.05);
+        }
+
+        .mode-toggle.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .mode-indicator {
+            font-size: 10px;
+            color: #8ab4f8;
+            text-align: center;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        /* Autocomplete Suggestions */
+        .suggestions-container {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 350px;
+            margin-bottom: 10px;
+            display: none;
+            background: rgba(10, 14, 39, 0.95);
+            border: 1px solid rgba(138, 180, 248, 0.3);
+            border-radius: 12px;
+            backdrop-filter: blur(20px);
+            overflow: hidden;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .suggestions-container.active {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 12px 16px;
+            color: #e8eaed;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(138, 180, 248, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion-item:hover, .suggestion-item.selected {
+            background: rgba(102, 126, 234, 0.2);
+            padding-left: 20px;
+        }
+
+        .suggestion-item i {
+            color: #8ab4f8;
+            font-size: 12px;
+            width: 16px;
+        }
+
+        .suggestion-text {
+            flex: 1;
+            font-size: 13px;
+        }
+
+        .suggestion-hint {
+            font-size: 10px;
+            color: #8ab4f8;
+            opacity: 0.7;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            gap: 4px;
+            padding: 10px;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.7; }
+            30% { transform: translateY(-10px); opacity: 1; }
+        }
+
+        /* Command Hints */
+        .command-hints {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            max-width: 350px;
+            margin: 10px auto 0;
+        }
+
+        .hint-chip {
+            padding: 6px 12px;
+            background: rgba(138, 180, 248, 0.1);
+            border: 1px solid rgba(138, 180, 248, 0.2);
+            border-radius: 15px;
+            color: #8ab4f8;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .hint-chip:hover {
+            background: rgba(138, 180, 248, 0.2);
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
 <body>
-    <!-- header -->
-    <header>
-        <div class = "header-wrapper">
-          <p class="awesome">PROTON Welcomes you!</p>
-            <div class = "logo">
-                <img src= "images/icon.png"  width="35" height="33">
+    <div class="bg-animation"></div>
+
+    <!-- Floating Particles -->
+    <script>
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 20 + 's';
+            particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+            document.body.appendChild(particle);
+        }
+    </script>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <i class="fas fa-atom"></i>
+                    </div>
+                    <div>
+                        <div class="title">QUANTUM</div>
+                        <div class="subtitle">AI Assistant</div>
+                    </div>
+                </div>
+                <div class="status-indicator" title="Online"></div>
             </div>
+        </header>
+
+        <!-- Chat Area -->
+        <div class="chat-container" id="messages">
+            <!-- Messages will be added here dynamically -->
         </div>
-    </header>
-    <!-- ChatBot -->
-    <div class="chat_icon">
-        <i class="fa fa-comments" aria-hidden="true"></i>
+
+        <!-- Input Area -->
+        <div class="input-area" style="position: relative;">
+            <!-- Autocomplete Suggestions -->
+            <div class="suggestions-container" id="suggestionsContainer"></div>
+
+            <div class="command-hints">
+                <div class="hint-chip" onclick="sendCommand('hello')">👋 Hello</div>
+                <div class="hint-chip" onclick="sendCommand('time')">🕐 Time</div>
+                <div class="hint-chip" onclick="sendCommand('motivational quote')">💡 Inspire</div>
+                <div class="hint-chip" onclick="sendCommand('help')">❓ Help</div>
+            </div>
+            <div class="input-container">
+                <button id="modeToggle" class="mode-toggle" title="Toggle Voice/Text Mode">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <input type="text" id="userInput" placeholder="Say 'Quantum' + your command..." autocomplete="off">
+                <button id="userInputButton" class="submit">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="mode-indicator" id="modeIndicator">Voice Mode</div>
+        </div>
     </div>
 
-    <div class="chat_box">
-        
-            <div class="conv-form-wrapper" style="height:auto;">
-                <div id="messages" style="overflow-y:auto;height:400px;">
-                    </br></br>                    
-                </div>
-            </div>
-            
-            <div id="convForm" class="convFormDynamic" style="height:50px;position:absolute;left:10px;bottom:0px;margin:5px;">
-                <div class="options dragscroll"></div>
-                <input type="text" id="userInput" placeholder="Type Here" class="userInputDynamic" style="margin: 7px 7.575px 7px 10px; width: 219px; height: 24px;">
-                <button id="userInputButton" type="button" class="submit" style="margin-top:9px">▶</button>
-                <span class="clear"></span>
-            </div>
-
-        </div>
-    
-</body>
     <script type="text/javascript" src="js/main.js"></script>
+    <script>
+        // Update assistant name dynamically
+        eel.expose(updateAssistantName);
+        function updateAssistantName(newName) {
+            document.querySelector('.title').textContent = newName.toUpperCase();
+            document.title = `${newName} AI Assistant`;
+        }
+
+        // Enhanced message display
+        eel.expose(addUserMsg);
+        function addUserMsg(msg) {
+            const container = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="avatar user"><i class="fas fa-user"></i></div>
+                <div class="bubble user">${msg}</div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        eel.expose(addAppMsg);
+        function addAppMsg(msg) {
+            const container = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+            messageDiv.innerHTML = `
+                <div class="avatar bot"><i class="fas fa-robot"></i></div>
+                <div class="bubble bot">${msg}</div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Mode toggle state
+        let isTextMode = false;
+        let currentSuggestions = [];
+        let selectedSuggestionIndex = -1;
+
+        // Quick command helper
+        function sendCommand(cmd) {
+            const input = document.getElementById('userInput');
+            if (isTextMode) {
+                input.value = cmd;  // In text mode, don't add 'quantum'
+            } else {
+                input.value = 'quantum ' + cmd;  // In voice mode, add 'quantum'
+            }
+            document.getElementById('userInputButton').click();
+        }
+
+        // Autocomplete functionality
+        async function updateSuggestions(input) {
+            const suggestionsContainer = document.getElementById('suggestionsContainer');
+
+            if (!input || input.length < 2) {
+                suggestionsContainer.classList.remove('active');
+                currentSuggestions = [];
+                return;
+            }
+
+            try {
+                const suggestions = await eel.getCommandSuggestions(input)();
+                currentSuggestions = suggestions || [];
+
+                if (currentSuggestions.length > 0) {
+                    suggestionsContainer.innerHTML = currentSuggestions.map((suggestion, index) => `
+                        <div class="suggestion-item" data-index="${index}" onclick="selectSuggestion('${suggestion}')">
+                            <i class="fas fa-terminal"></i>
+                            <span class="suggestion-text">${suggestion}</span>
+                            <span class="suggestion-hint">↵</span>
+                        </div>
+                    `).join('');
+                    suggestionsContainer.classList.add('active');
+                    selectedSuggestionIndex = -1;
+                } else {
+                    suggestionsContainer.classList.remove('active');
+                }
+            } catch (error) {
+                console.error('Error fetching suggestions:', error);
+            }
+        }
+
+        function selectSuggestion(suggestion) {
+            const input = document.getElementById('userInput');
+            input.value = suggestion;
+            document.getElementById('suggestionsContainer').classList.remove('active');
+            currentSuggestions = [];
+            selectedSuggestionIndex = -1;
+            input.focus();
+        }
+
+        function highlightSuggestion(index) {
+            const items = document.querySelectorAll('.suggestion-item');
+            items.forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        // Mode toggle button
+        document.getElementById('modeToggle').addEventListener('click', function() {
+            isTextMode = !isTextMode;
+            const toggleBtn = document.getElementById('modeToggle');
+            const modeIndicator = document.getElementById('modeIndicator');
+            const userInput = document.getElementById('userInput');
+
+            if (isTextMode) {
+                // Switch to text mode
+                toggleBtn.classList.add('active');
+                toggleBtn.innerHTML = '<i class="fas fa-keyboard"></i>';
+                modeIndicator.textContent = 'Text Mode';
+                userInput.placeholder = 'Type your command (no wake word needed)...';
+                eel.setTextMode(true);
+            } else {
+                // Switch to voice mode
+                toggleBtn.classList.remove('active');
+                toggleBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                modeIndicator.textContent = 'Voice Mode';
+                userInput.placeholder = "Say 'Quantum' + your command...";
+                eel.setTextMode(false);
+            }
+        });
+
+        // Input field event listeners
+        const userInput = document.getElementById('userInput');
+
+        // Handle typing for autocomplete
+        userInput.addEventListener('input', function(e) {
+            const value = e.target.value.trim();
+            if (isTextMode) {
+                updateSuggestions(value);
+            }
+        });
+
+        // Handle keyboard navigation
+        userInput.addEventListener('keydown', function(e) {
+            const suggestionsContainer = document.getElementById('suggestionsContainer');
+
+            // Tab key - autocomplete with first suggestion
+            if (e.key === 'Tab' && currentSuggestions.length > 0) {
+                e.preventDefault();
+                selectSuggestion(currentSuggestions[selectedSuggestionIndex >= 0 ? selectedSuggestionIndex : 0]);
+            }
+            // Arrow down - navigate suggestions
+            else if (e.key === 'ArrowDown' && currentSuggestions.length > 0) {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, currentSuggestions.length - 1);
+                highlightSuggestion(selectedSuggestionIndex);
+            }
+            // Arrow up - navigate suggestions
+            else if (e.key === 'ArrowUp' && currentSuggestions.length > 0) {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, 0);
+                highlightSuggestion(selectedSuggestionIndex);
+            }
+            // Escape - close suggestions
+            else if (e.key === 'Escape') {
+                suggestionsContainer.classList.remove('active');
+                currentSuggestions = [];
+                selectedSuggestionIndex = -1;
+            }
+            // Enter - submit or select suggestion
+            else if (e.key === 'Enter') {
+                if (selectedSuggestionIndex >= 0 && currentSuggestions.length > 0) {
+                    e.preventDefault();
+                    selectSuggestion(currentSuggestions[selectedSuggestionIndex]);
+                } else {
+                    document.getElementById('userInputButton').click();
+                }
+            }
+        });
+
+        // Close suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            const suggestionsContainer = document.getElementById('suggestionsContainer');
+            const input = document.getElementById('userInput');
+            if (e.target !== input && !suggestionsContainer.contains(e.target)) {
+                suggestionsContainer.classList.remove('active');
+                currentSuggestions = [];
+                selectedSuggestionIndex = -1;
+            }
+        });
+
+        // Send button handler
+        document.getElementById('userInputButton').addEventListener('click', function() {
+            const input = document.getElementById('userInput');
+            const msg = input.value.trim();
+            if (msg) {
+                // In text mode, don't require 'quantum' prefix
+                if (isTextMode) {
+                    eel.getUserInput(msg);
+                } else {
+                    // In voice mode, still accept manual text with or without 'quantum'
+                    eel.getUserInput(msg);
+                }
+                input.value = '';
+            }
+        });
+    </script>
+</body>
 </html>

@@ -6,11 +6,18 @@ Handles mouse control, clicking, scrolling, volume, and brightness.
 """
 
 import pyautogui
-from ctypes import cast, POINTER
-from comtypes import CLSCTX_ALL
-from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-import screen_brightness_control as sbcontrol
 from gesture_enums import Gest
+
+# Windows-specific imports (optional on macOS/Linux)
+WINDOWS_FEATURES_AVAILABLE = False
+try:
+    from ctypes import cast, POINTER
+    from comtypes import CLSCTX_ALL
+    from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+    import screen_brightness_control as sbcontrol
+    WINDOWS_FEATURES_AVAILABLE = True
+except ImportError:
+    pass  # Gracefully skip Windows-specific features on other platforms
 
 # Disable PyAutoGUI fail-safe (moving mouse to corner won't stop program)
 pyautogui.FAILSAFE = False
@@ -93,6 +100,8 @@ class Controller:
     @staticmethod
     def changesystembrightness():
         """Incrementally adjusts system brightness based on pinch movement delta."""
+        if not WINDOWS_FEATURES_AVAILABLE:
+            return  # Gracefully skip on macOS/Linux
         currentBrightnessLv = sbcontrol.get_brightness(display=0) / 100.0
         # Use smaller increment for smoother control
         currentBrightnessLv += Controller.pinchlv * 0.02
@@ -105,6 +114,8 @@ class Controller:
     @staticmethod
     def changesystemvolume():
         """Incrementally adjusts system volume based on pinch movement delta."""
+        if not WINDOWS_FEATURES_AVAILABLE:
+            return  # Gracefully skip on macOS/Linux
         devices = AudioUtilities.GetSpeakers()
         interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         volume = cast(interface, POINTER(IAudioEndpointVolume))

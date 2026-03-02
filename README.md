@@ -813,3 +813,9 @@ jarvis wikipedia [topic]	wikipedia.summary() — already imported but unused
 jarvis type [text]	pyautogui.typewrite() to dictate text
 jarvis minimize / jarvis maximize	pyautogui.hotkey('win', 'd') etc.
 jarvis lock	os.system('rundll32.exe user32.dll,LockWorkStation')
+
+mac:
+cd "/Users/himanshu/Desktop/final project/gesture-mouse"
+source .venv/bin/activate
+python Gesture_Controller.py
+python Quantum.py
