@@ -300,4 +300,17 @@ example: define javascript
 
 ---
 
+# ⚡ 24. Power User System Utilities
+
+- quantum cleanup desktop
+- quantum empty recycle bin
+- quantum startup apps status
+- quantum network speed test
+
+## Confirmation
+- confirm
+- cancel
+
+---
+
 # ✅ End of Extracted Command Reference

@@ -29,10 +29,10 @@ OLLAMA_MODEL = "llama3"  # For local Ollama
 GEMINI_MODEL = "gemini-2.5-flash"  # For Google Gemini (latest fast model)
 
 # Print configuration (without showing full API key)
-if GEMINI_API_KEY:
-    print(f"[LLM] Gemini API Key loaded: {GEMINI_API_KEY[:10]}...")
 if GROQ_API_KEY:
     print(f"[LLM] Groq API Key loaded: {GROQ_API_KEY[:10]}...")
+if GEMINI_API_KEY:
+    print(f"[LLM] Gemini API Key loaded: {GEMINI_API_KEY[:10]}...")
 print(f"[LLM] Provider: {LLM_PROVIDER}")
 
 
@@ -67,17 +67,40 @@ def get_creative_response(prompt, category="general"):
     system_prompt = system_prompts.get(category, system_prompts["general"])
 
     try:
-        if LLM_PROVIDER == "groq":
-            return _get_groq_response(prompt, system_prompt)
-        elif LLM_PROVIDER == "ollama":
-            return _get_ollama_response(prompt, system_prompt)
-        elif LLM_PROVIDER == "gemini":
-            return _get_gemini_response(prompt, system_prompt)
-        else:
-            return _get_fallback_response(category)
+        # Default behavior: Attempt Groq first if available
+        if LLM_PROVIDER == "groq" or not LLM_PROVIDER:
+            try:
+                if GROQ_API_KEY:
+                    return _get_groq_response(prompt, system_prompt)
+                else:
+                    raise Exception("Groq key not set, falling back")
+            except Exception as e:
+                print(f"[LLM] Groq failed: {e}. Falling back to Gemini...")
+                # Fallthrough to Gemini
+
+        # Attempt Gemini if explicitly requested or if we're falling back
+        if LLM_PROVIDER in ["gemini", "groq", ""]:
+            try:
+                if GEMINI_API_KEY:
+                    return _get_gemini_response(prompt, system_prompt)
+                else:
+                    raise Exception("Gemini key not set, falling back")
+            except Exception as e:
+                print(f"[LLM] Gemini failed: {e}. Falling back to local static response.")
+                # Fallthrough to local fallback
+
+        # Attempt Ollama if explicitly requested
+        if LLM_PROVIDER == "ollama":
+            try:
+                return _get_ollama_response(prompt, system_prompt)
+            except Exception as e:
+                print(f"[LLM] Ollama failed: {e}. Falling back to local static response.")
+                
     except Exception as e:
-        print(f"[LLM ERROR] {e}")
-        return _get_fallback_response(category)
+        print(f"[LLM ERROR] unexpected top-level error: {e}")
+
+    # Ultimate fallback safety net
+    return _get_fallback_response(category)
 
 
 def _get_groq_response(prompt, system_prompt):

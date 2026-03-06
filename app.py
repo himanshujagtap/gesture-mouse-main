@@ -61,7 +61,9 @@ class ChatBot:
             'help', 'commands', 'what can you do',
             'sing', 'dance', 'tell me about yourself', 'about yourself',
             'good job', 'well done', 'great job', 'thank you',
-            'are you alive', 'are you real', 'what do you think about ai'
+            'are you alive', 'are you real', 'what do you think about ai',
+            'cleanup desktop', 'empty recycle bin', 'startup apps status', 'network speed test',
+            'confirm', 'cancel'
         ]
 
         partial_lower = partial_input.lower().strip()
