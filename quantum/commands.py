@@ -1187,6 +1187,7 @@ def respond(voice_data):
         help_text += "• Music: play music, pause music, next song, previous song <br>"
         help_text += "• Apps: open app [name], close app [name] <br>"
         help_text += "• Gesture: launch gesture recognition, stop gesture recognition <br>"
+        help_text += "• Custom Gestures: train gesture [name], list custom gestures, delete gesture [name] <br>"
         help_text += "• Search: search [query], youtube search [query], github search [query], stackoverflow [query] <br>"
         help_text += "• Tools: calculate [expr], convert [unit], translate [text], define [word], wikipedia [topic], set timer [duration] <br>"
         help_text += "• Files: list (browse root directory) <br>"
@@ -1255,6 +1256,49 @@ def respond(voice_data):
                     print(str(counter) + ':  ' + f)
                 reply('ok')
                 app.ChatBot.addAppMsg(filestr)
+
+    # -----------------------------------------------------------------------
+    # CUSTOM GESTURE MANAGEMENT
+    # -----------------------------------------------------------------------
+    elif 'train gesture' in voice_data or 'add gesture' in voice_data:
+        raw = (voice_data.replace('train gesture', '').replace('add gesture', '').strip())
+        gesture_name = raw.replace(' ', '_') if raw else ''
+        if not gesture_name:
+            reply("What should the gesture be called? Try: train gesture thumbs up")
+        else:
+            _trainer_script = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), 'custom_gesture_trainer.py')
+            reply(f"Opening gesture trainer for '{gesture_name}'. Follow the instructions in the window: show your hand and press SPACE to capture 25 samples, then ENTER to save.")
+            _subprocess.Popen([sys.executable, _trainer_script, '--name', gesture_name])
+
+    elif 'list custom gesture' in voice_data or 'show custom gesture' in voice_data:
+        try:
+            import sys as _sys
+            _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+            from custom_gesture_recognizer import CustomGestureRecognizer as _CGR
+            _rec = _CGR()
+            names = _rec.list_gestures()
+            if names:
+                reply(f"You have {len(names)} custom gesture(s): {', '.join(names)}")
+            else:
+                reply("No custom gestures trained yet. Say 'train gesture [name]' to create one.")
+        except Exception as _e:
+            reply(f"Couldn't load gestures: {_e}")
+
+    elif 'delete gesture' in voice_data or 'remove gesture' in voice_data:
+        raw = (voice_data.replace('delete gesture', '').replace('remove gesture', '').strip())
+        gesture_name = raw.replace(' ', '_') if raw else ''
+        if not gesture_name:
+            reply("Which gesture should I delete? Try: delete gesture thumbs up")
+        else:
+            try:
+                from custom_gesture_recognizer import CustomGestureRecognizer as _CGR
+                _rec = _CGR()
+                if _rec.delete_gesture(gesture_name):
+                    reply(f"Deleted gesture '{gesture_name}'.")
+                else:
+                    reply(f"No gesture named '{gesture_name}' found.")
+            except Exception as _e:
+                reply(f"Couldn't delete gesture: {_e}")
 
     else:
         import random as _random

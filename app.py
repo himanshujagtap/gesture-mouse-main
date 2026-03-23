@@ -38,6 +38,7 @@ class ChatBot:
         commands = [
             'hello', 'time', 'date', 'search', 'location',
             'launch gesture recognition', 'stop gesture recognition',
+            'train gesture', 'add gesture', 'list custom gestures', 'delete gesture',
             'copy', 'paste', 'change name to', 'rename to', 'call yourself',
             'screenshot', 'scroll up', 'scroll down',
             'volume up', 'volume down', 'mute', 'unmute',

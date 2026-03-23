@@ -166,6 +166,14 @@ class GestureController:
         handmajor = HandRecog(HLabel.MAJOR)
         handminor = HandRecog(HLabel.MINOR)
 
+        # Load custom gestures (graceful — missing file or import error = disabled)
+        try:
+            from custom_gesture_recognizer import CustomGestureRecognizer
+            custom_recognizer = CustomGestureRecognizer()
+        except Exception as _e:
+            logging.debug("Custom gesture recognizer not loaded: %s", _e)
+            custom_recognizer = None
+
         if GestureController.cap is None or not GestureController.cap.isOpened():
             logging.error("Camera is not available. Exiting.")
             return
@@ -209,6 +217,14 @@ class GestureController:
                             gest_name = handmajor.get_gesture()
                             Controller.handle_controls(gest_name, handmajor.hand_result)
 
+                        # Custom gesture check — both hands checked independently
+                        # (right-hand and left-hand versions of the same pose are separate gestures)
+                        custom_name = None
+                        if custom_recognizer:
+                            custom_name = custom_recognizer.check_and_execute(
+                                GestureController.hr_major, GestureController.hr_minor
+                            )
+
                         for hand_landmarks in results.multi_hand_landmarks:
                             mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
@@ -224,6 +240,8 @@ class GestureController:
                         major_g = handmajor.get_gesture()
                         active_g = minor_g if int(minor_g) == 36 else major_g
                         label = _GESTURE_NAMES.get(int(active_g), str(active_g))
+                        if custom_name:
+                            label = f'Custom: {custom_name}'
                         cv2.rectangle(image, (8, 8), (320, 40), (0, 0, 0), -1)
                         cv2.putText(image, f'Gesture: {label}', (12, 30),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 120), 2)
