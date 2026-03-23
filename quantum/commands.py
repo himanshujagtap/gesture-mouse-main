@@ -1195,8 +1195,160 @@ def respond(voice_data):
         help_text += "• Fun: joke, flip coin, roll dice, magic 8 ball, motivational quote, random fact, compliment me, roast me, sing, dance <br>"
         help_text += "• About: tell me about yourself, are you alive, thoughts on ai, change name to [name] <br>"
         help_text += "• Easter eggs: good job quantum, well done quantum, thank you quantum <br>"
+        help_text += "• Context-aware (changes by active app): run code, format code, comment line, go to line, split editor, go back, go forward, next tab, previous tab, zoom in/out, save file, save all, open terminal here, find in files, what app <br>"
         help_text += "Say 'quantum' before each command!"
         reply(help_text)
+
+    # -----------------------------------------------------------------------
+    # CONTEXT-AWARE COMMANDS
+    # Behaviour changes based on which app is currently frontmost.
+    # -----------------------------------------------------------------------
+
+    elif 'what app' in voice_data or 'current app' in voice_data or 'which app' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        _category = get_app_category(_app_name)
+        if _app_name:
+            reply(f"You are currently in {_app_name} (category: {_category})")
+        else:
+            reply("I couldn't detect the active application.")
+
+    elif 'run code' in voice_data or 'build project' in voice_data or 'run project' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        _category = get_app_category(_app_name)
+        if _category in ('vscode', 'editor'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', 'shift', 'b')
+            reply(f"Running build task in {_app_name}")
+        elif _category == 'terminal':
+            keyboard.press(Key.up); keyboard.release(Key.up)
+            keyboard.press(Key.enter); keyboard.release(Key.enter)
+            reply("Re-running last command in terminal")
+        else:
+            reply(f"'Run code' works in VS Code or Terminal. Switch there first. (Currently in: {_app_name or 'unknown'})")
+
+    elif 'format code' in voice_data or 'format document' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        _category = get_app_category(_app_name)
+        if _category in ('vscode', 'editor'):
+            pyautogui.hotkey('shift', 'option' if IS_MAC else 'alt', 'f')
+            reply(f"Formatting code in {_app_name}")
+        else:
+            reply(f"Format code works in VS Code. Currently in: {_app_name or 'unknown'}")
+
+    elif 'comment line' in voice_data or 'comment out' in voice_data or 'toggle comment' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('vscode', 'editor'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', '/')
+            reply("Toggled comment")
+        else:
+            reply("Comment shortcut works in VS Code and code editors.")
+
+    elif 'go to line' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        if get_app_category(_app_name) in ('vscode', 'editor'):
+            pyautogui.hotkey('ctrl', 'g')
+            reply("Opening go-to-line in VS Code")
+        else:
+            reply(f"Go to line works in VS Code. Currently in: {_app_name or 'unknown'}")
+
+    elif 'split editor' in voice_data or 'split screen editor' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('vscode', 'editor'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', '\\')
+            reply("Split editor opened")
+        else:
+            reply("Split editor works in VS Code.")
+
+    elif 'go back' in voice_data:
+        from quantum.context import get_app_category
+        _category = get_app_category()
+        if _category in ('browser', 'finder'):
+            pyautogui.hotkey('command' if IS_MAC else 'alt', '[' if IS_MAC else 'left')
+            reply("Going back")
+        else:
+            reply("Go back works in browsers and Finder.")
+
+    elif 'go forward' in voice_data:
+        from quantum.context import get_app_category
+        _category = get_app_category()
+        if _category in ('browser', 'finder'):
+            pyautogui.hotkey('command' if IS_MAC else 'alt', ']' if IS_MAC else 'right')
+            reply("Going forward")
+        else:
+            reply("Go forward works in browsers and Finder.")
+
+    elif 'next tab' in voice_data:
+        from quantum.context import get_app_category
+        _category = get_app_category()
+        if _category == 'browser' and IS_MAC:
+            pyautogui.hotkey('command', 'option', 'right')
+        else:
+            pyautogui.hotkey('ctrl', 'tab')
+        reply("Next tab")
+
+    elif 'previous tab' in voice_data or 'prev tab' in voice_data:
+        from quantum.context import get_app_category
+        _category = get_app_category()
+        if _category == 'browser' and IS_MAC:
+            pyautogui.hotkey('command', 'option', 'left')
+        else:
+            pyautogui.hotkey('ctrl', 'shift', 'tab')
+        reply("Previous tab")
+
+    elif 'zoom in' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('browser', 'vscode', 'editor', 'terminal', 'notes', 'office'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', '=')
+            reply("Zoomed in")
+        else:
+            reply("Zoom in works in browsers, VS Code, and most text apps.")
+
+    elif 'zoom out' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('browser', 'vscode', 'editor', 'terminal', 'notes', 'office'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', '-')
+            reply("Zoomed out")
+        else:
+            reply("Zoom out works in browsers, VS Code, and most text apps.")
+
+    elif 'save file' in voice_data or 'save all' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        _category = get_app_category(_app_name)
+        if 'save all' in voice_data and _category in ('vscode', 'editor'):
+            if IS_MAC:
+                pyautogui.hotkey('command', 'option', 's')
+            else:
+                pyautogui.hotkey('ctrl', 'k', 's')
+            reply(f"Saved all files in {_app_name}")
+        else:
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', 's')
+            reply(f"Saved in {_app_name or 'current app'}")
+
+    elif 'open terminal here' in voice_data or 'new terminal' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() == 'vscode':
+            pyautogui.hotkey('ctrl', '`')
+            reply("Opening integrated terminal in VS Code")
+        elif IS_MAC:
+            import subprocess as _sp
+            _sp.Popen(['open', '-a', 'Terminal'])
+            reply("Opening Terminal")
+        else:
+            import subprocess as _sp
+            _sp.Popen(['cmd.exe'])
+            reply("Opening Command Prompt")
+
+    elif 'find in files' in voice_data or 'global search' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('vscode', 'editor'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', 'shift', 'f')
+            reply("Opening global search in VS Code")
+        else:
+            reply("Find in files works in VS Code.")
 
     # -----------------------------------------------------------------------
     # FILE NAVIGATION
