@@ -184,17 +184,21 @@ if __name__ == '__main__':
                         help='Camera index (default 0)')
     args = parser.parse_args()
 
-    # Prompt for action value interactively if not provided
+    # Prompt for action value interactively if not provided and stdin is a TTY
     if not args.action_value:
-        prompts = {
-            'hotkey':    'Enter hotkey (e.g. cmd+shift+3  or  ctrl+c): ',
-            'type_text': 'Enter text to type: ',
-            'open_app':  'Enter app name (e.g. Calculator): ',
-        }
-        args.action_value = input(prompts[args.action_type]).strip()
-        if not args.action_value:
-            print("Action value is required. Exiting.")
-            sys.exit(1)
+        if sys.stdin.isatty():
+            prompts = {
+                'hotkey':    'Enter hotkey (e.g. cmd+shift+3  or  ctrl+c): ',
+                'type_text': 'Enter text to type: ',
+                'open_app':  'Enter app name (e.g. Calculator): ',
+            }
+            args.action_value = input(prompts[args.action_type]).strip()
+            if not args.action_value:
+                print("Action value is required. Exiting.")
+                sys.exit(1)
+        else:
+            print(f"[Trainer] No action value provided — gesture will be saved with empty action.")
+            print(f"[Trainer] Use 'delete gesture {args.name}' then retrain with an action to update.")
 
     # Sanitize name
     gesture_name = args.name.strip().lower().replace(' ', '_')
