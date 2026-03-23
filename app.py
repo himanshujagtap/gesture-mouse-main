@@ -65,6 +65,8 @@ class ChatBot:
             'good job', 'well done', 'great job', 'thank you',
             'are you alive', 'are you real', 'what do you think about ai',
             'cleanup desktop', 'empty recycle bin', 'startup apps status', 'network speed test',
+            'find file', 'find folder', 'find my', 'search for file', 'locate file',
+            'open file', 'open result',
             'confirm', 'cancel'
         ]
 

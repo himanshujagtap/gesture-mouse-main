@@ -398,6 +398,59 @@ def respond(voice_data):
         reply("Locking screen")
 
     # -----------------------------------------------------------------------
+    # FILE SEARCH & OPEN BY VOICE
+    # -----------------------------------------------------------------------
+    elif any(kw in voice_data for kw in ('find file', 'search for file', 'find my', 'find folder', 'search file', 'locate file')):
+        from quantum.file_search import search_files
+        # Strip trigger phrases to get the query
+        query = voice_data
+        for kw in ('find file', 'search for file', 'find my', 'find folder', 'search file', 'locate file'):
+            query = query.replace(kw, '')
+        query = query.strip()
+        if not query:
+            reply("What file are you looking for?")
+        else:
+            reply(f"Searching for '{query}'…")
+            results = search_files(query)
+            state.file_search_results = results
+            if not results:
+                reply(f"No files found matching '{query}'.")
+            else:
+                lines = []
+                for i, (score, path, is_dir) in enumerate(results, 1):
+                    kind = 'Folder' if is_dir else 'File'
+                    name = os.path.basename(path)
+                    lines.append(f"{i}. {kind}: {name}")
+                reply("Found these matches:<br>" + "<br>".join(lines) + "<br>Say 'open file 1' (or whichever number) to open.")
+
+    elif 'open file' in voice_data or 'open result' in voice_data:
+        from quantum.file_search import search_files, open_path
+        # Try to parse a number (e.g. "open file 2")
+        import re as _re
+        m = _re.search(r'\d+', voice_data)
+        if m and state.file_search_results:
+            idx = int(m.group()) - 1
+            if 0 <= idx < len(state.file_search_results):
+                _, path, _ = state.file_search_results[idx]
+                reply(f"Opening {os.path.basename(path)}")
+                open_path(path)
+            else:
+                reply(f"I only have {len(state.file_search_results)} results. Please say a valid number.")
+        else:
+            # No previous results or no number — treat remainder as a fresh query and open best match
+            query = voice_data.replace('open file', '').replace('open result', '').strip()
+            if not query:
+                reply("What file should I open?")
+            else:
+                results = search_files(query)
+                if results:
+                    _, path, _ = results[0]
+                    reply(f"Opening {os.path.basename(path)}")
+                    open_path(path)
+                else:
+                    reply(f"Could not find a file matching '{query}'.")
+
+    # -----------------------------------------------------------------------
     # APP CONTROL
     # -----------------------------------------------------------------------
     elif 'open app' in voice_data or ('open' in voice_data and not state.file_exp_status):
