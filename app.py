@@ -23,9 +23,11 @@ class ChatBot:
         print(f"Text mode: {mode}")
 
     def close_callback(route, websockets):
-        # if not websockets:
-        #     print('Bye!')
-        exit()
+        # Only exit when every browser window/tab has closed.
+        # Navigating between index.html and dashboard.html briefly
+        # drops one connection but the other stays alive — don't exit then.
+        if not websockets:
+            exit()
 
     @eel.expose
     def getUserInput(msg):
@@ -80,6 +82,15 @@ class ChatBot:
 
         return suggestions[:5]  # Return max 5 suggestions
     
+    @eel.expose
+    def getDashboardData():
+        """Serve live session + system stats to the dashboard page."""
+        try:
+            from quantum.stats import get_dashboard_data
+            return get_dashboard_data()
+        except Exception as e:
+            return {'error': str(e)}
+
     def close():
         ChatBot.started = False
     

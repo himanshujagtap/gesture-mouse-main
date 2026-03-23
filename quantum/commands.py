@@ -172,6 +172,13 @@ def respond(voice_data):
 
     app.eel.addUserMsg(voice_data)()
 
+    # Track for dashboard (silent — never raises)
+    try:
+        from quantum import stats as _stats
+        _stats.track_command(voice_data)
+    except Exception:
+        pass
+
     # -----------------------------------------------------------------------
     # SLEEP / WAKE
     # -----------------------------------------------------------------------
@@ -1197,6 +1204,13 @@ def respond(voice_data):
         help_text += "• Easter eggs: good job quantum, well done quantum, thank you quantum <br>"
         help_text += "Say 'quantum' before each command!"
         reply(help_text)
+
+    # -----------------------------------------------------------------------
+    # DASHBOARD
+    # -----------------------------------------------------------------------
+    elif 'show dashboard' in voice_data or 'open dashboard' in voice_data or voice_data == 'dashboard':
+        webbrowser.get().open('http://localhost:27005/dashboard.html')
+        reply("Opening Quantum Dashboard in your browser")
 
     # -----------------------------------------------------------------------
     # FILE NAVIGATION
