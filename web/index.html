@@ -1,713 +1,1107 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quantum AI Assistant</title>
     <script type="text/javascript" src="/eel.js"></script>
-    <link rel="stylesheet" type="text/css" href="css/jquery.convform.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="css/jquery.convform.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-            height: 100vh;
-            overflow: hidden;
-            background: #0a0e27;
-            position: relative;
-        }
-
-        /* Animated Gradient Background */
-        .bg-animation {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, #0a0e27, #1a1f4e, #2d1b4e, #1a1f4e, #0a0e27);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-            z-index: 0;
-        }
-
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Floating Particles */
-        .particle {
-            position: absolute;
-            width: 3px;
-            height: 3px;
-            background: rgba(138, 180, 248, 0.6);
-            border-radius: 50%;
-            animation: float 20s infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
-        }
-
-        /* Container */
-        .container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Header */
-        header {
-            padding: 20px;
-            backdrop-filter: blur(20px);
-            background: rgba(255, 255, 255, 0.02);
-            border-bottom: 1px solid rgba(138, 180, 248, 0.1);
-        }
-
-        .header-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 350px;
-            margin: 0 auto;
-        }
-
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .logo-icon {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.5); }
-            50% { box-shadow: 0 0 30px rgba(102, 126, 234, 0.8); }
-        }
-
-        .logo-icon i {
-            color: #fff;
-            font-size: 24px;
-        }
-
-        .title {
-            color: #fff;
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
-        }
-
-        .subtitle {
-            color: #8ab4f8;
-            font-size: 11px;
-            margin-top: 2px;
-        }
-
-        .status-indicator {
-            width: 10px;
-            height: 10px;
-            background: #4ade80;
-            border-radius: 50%;
-            animation: blink 2s ease-in-out infinite;
-            box-shadow: 0 0 10px #4ade80;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        /* Chat Container */
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(138, 180, 248, 0.3) transparent;
-        }
-
-        .chat-container::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .chat-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chat-container::-webkit-scrollbar-thumb {
-            background: rgba(138, 180, 248, 0.3);
-            border-radius: 3px;
-        }
-
-        /* Message Bubbles */
-        .message {
-            margin-bottom: 20px;
-            animation: messageSlide 0.3s ease-out;
-        }
-
-        @keyframes messageSlide {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message.bot {
-            display: flex;
-            gap: 10px;
-        }
-
-        .message.user {
-            display: flex;
-            flex-direction: row-reverse;
-            gap: 10px;
-        }
-
-        .avatar {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .avatar.bot {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
-        }
-
-        .avatar.user {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            box-shadow: 0 0 15px rgba(245, 87, 108, 0.5);
-        }
-
-        .avatar i {
-            color: #fff;
-            font-size: 16px;
-        }
-
-        .bubble {
-            max-width: 1000px;
-            padding: 12px 16px;
-            border-radius: 18px;
-            word-wrap: break-word;
-        }
-
-        .bubble.bot {
-            background: rgba(102, 126, 234, 0.15);
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            color: #e8eaed;
-            backdrop-filter: blur(10px);
-        }
-
-        .bubble.user {
-            background: rgba(245, 87, 108, 0.15);
-            border: 1px solid rgba(245, 87, 108, 0.3);
-            color: #e8eaed;
-            backdrop-filter: blur(10px);
-        }
-
-        /* Input Area */
-        .input-area {
-            padding: 20px;
-            backdrop-filter: blur(20px);
-            background: rgba(255, 255, 255, 0.02);
-            border-top: 1px solid rgba(138, 180, 248, 0.1);
-        }
-
-        .input-container {
-            display: flex;
-            gap: 10px;
-            max-width: 350px;
-            margin: 0 auto;
-            align-items: center;
-        }
-
-        #userInput {
-            flex: 1;
-            padding: 12px 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(138, 180, 248, 0.2);
-            border-radius: 25px;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        #userInput:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        #userInput::placeholder {
-            color: rgba(255, 255, 255, 0.4);
-        }
-
-        .submit {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            border: none;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .submit:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
-
-        .submit:active {
-            transform: scale(0.95);
-        }
-
-        /* Mode Toggle Button */
-        .mode-toggle {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(138, 180, 248, 0.2);
-            color: #8ab4f8;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(138, 180, 248, 0.3);
-        }
-
-        .mode-toggle:hover {
-            background: rgba(138, 180, 248, 0.3);
-            transform: scale(1.05);
-        }
-
-        .mode-toggle.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #fff;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .mode-indicator {
-            font-size: 10px;
-            color: #8ab4f8;
-            text-align: center;
-            margin-top: 5px;
-            font-weight: 600;
-        }
-
-        /* Autocomplete Suggestions */
-        .suggestions-container {
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 350px;
-            margin-bottom: 10px;
-            display: none;
-            background: rgba(10, 14, 39, 0.95);
-            border: 1px solid rgba(138, 180, 248, 0.3);
-            border-radius: 12px;
-            backdrop-filter: blur(20px);
-            overflow: hidden;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .suggestions-container.active {
-            display: block;
-        }
-
-        .suggestion-item {
-            padding: 12px 16px;
-            color: #e8eaed;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border-bottom: 1px solid rgba(138, 180, 248, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-
-        .suggestion-item:hover, .suggestion-item.selected {
-            background: rgba(102, 126, 234, 0.2);
-            padding-left: 20px;
-        }
-
-        .suggestion-item i {
-            color: #8ab4f8;
-            font-size: 12px;
-            width: 16px;
-        }
-
-        .suggestion-text {
-            flex: 1;
-            font-size: 13px;
-        }
-
-        .suggestion-hint {
-            font-size: 10px;
-            color: #8ab4f8;
-            opacity: 0.7;
-        }
-
-        /* Typing Indicator */
-        .typing-indicator {
-            display: none;
-            gap: 4px;
-            padding: 10px;
-        }
-
-        .typing-indicator.active {
-            display: flex;
-        }
-
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #667eea;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.7; }
-            30% { transform: translateY(-10px); opacity: 1; }
-        }
-
-        /* Command Hints */
-        .command-hints {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            max-width: 350px;
-            margin: 0px auto 10px;
-        }
-
-        .hint-chip {
-            padding: 6px 12px;
-            background: rgba(138, 180, 248, 0.1);
-            border: 1px solid rgba(138, 180, 248, 0.2);
-            border-radius: 15px;
-            color: #8ab4f8;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .hint-chip:hover {
-            background: rgba(138, 180, 248, 0.2);
-            border-color: #667eea;
-            transform: translateY(-2px);
-        }
-
-        /* Sleep state: red indicator */
-        .status-indicator.sleeping {
-            background: #ef4444;
-            box-shadow: 0 0 10px #ef4444;
-            animation: blink 1.5s ease-in-out infinite;
-        }
-
-        /* Thinking bubble */
-        .thinking-bubble .bubble.bot {
-            background: rgba(102, 126, 234, 0.08);
-            border: 1px solid rgba(102, 126, 234, 0.2);
-            min-width: 180px;
-        }
-
-        .thinking-text {
-            background: linear-gradient(90deg, #8ab4f8 0%, #c084fc 40%, #8ab4f8 80%);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            animation: shimmerText 2.5s linear infinite;
-            font-style: italic;
-            font-size: 13px;
-        }
-
-        @keyframes shimmerText {
-            0%   { background-position: 0% center; }
-            100% { background-position: 200% center; }
-        }
-
-        /* Thinking dots row */
-        .thinking-dots {
-            display: flex;
-            gap: 4px;
-            margin-top: 6px;
-            align-items: center;
-        }
-
-        /* Status wrapper */
-        .status-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-label {
-            font-size: 10px;
-            color: #4ade80;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            transition: color 0.4s ease;
-        }
-
-        .status-label.sleeping {
-            color: #ef4444;
-        }
-
-        /* Sound toggle */
-        .sound-toggle {
-            background: none;
-            border: none;
-            color: rgba(138, 180, 248, 0.4);
-            font-size: 13px;
-            cursor: pointer;
-            padding: 4px 6px;
-            transition: color 0.2s ease;
-        }
-
-        .sound-toggle:hover { color: #8ab4f8; }
-        .sound-toggle.muted  { color: rgba(138, 180, 248, 0.25); }
-
-        /* Toast notifications */
-        #toast-container {
-            position: fixed;
-            top: 80px;
-            right: 16px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            pointer-events: none;
-        }
-
-        .toast {
-            padding: 10px 16px;
-            border-radius: 10px;
-            font-size: 12px;
-            backdrop-filter: blur(20px);
-            border: 1px solid;
-            animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards;
-            pointer-events: none;
-            max-width: 240px;
-        }
-
-        .toast.info {
-            background: rgba(102, 126, 234, 0.2);
-            border-color: rgba(102, 126, 234, 0.5);
-            color: #c4cfff;
-        }
-
-        .toast.success {
-            background: rgba(74, 222, 128, 0.15);
-            border-color: rgba(74, 222, 128, 0.4);
-            color: #a7f3c0;
-        }
-
-        .toast.warning {
-            background: rgba(251, 191, 36, 0.15);
-            border-color: rgba(251, 191, 36, 0.4);
-            color: #fde68a;
-        }
-
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateX(40px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-
-        @keyframes toastOut {
-            from { opacity: 1; transform: translateX(0); }
-            to   { opacity: 0; transform: translateX(40px); }
-        }
-
-        /* Message timestamp */
-        .msg-time {
-            font-size: 10px;
-            color: rgba(138, 180, 248, 0.35);
-            margin-top: 4px;
-            opacity: 1;
-            transition: opacity 0.2s ease;
-            padding: 0 4px;
-        }
-
-        /* .message:hover .msg-time { opacity: 1; } */
-        .message.user .msg-time  { text-align: right; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        height: 100vh;
+        overflow: hidden;
+        background: #0a0e27;
+        position: relative;
+      }
+
+      /* Animated Gradient Background */
+      .bg-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          45deg,
+          #0a0e27,
+          #1a1f4e,
+          #2d1b4e,
+          #1a1f4e,
+          #0a0e27
+        );
+        background-size: 400% 400%;
+        animation: gradientShift 15s ease infinite;
+        z-index: 0;
+      }
+
+      @keyframes gradientShift {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      /* Floating Particles */
+      .particle {
+        position: absolute;
+        width: 3px;
+        height: 3px;
+        background: rgba(138, 180, 248, 0.6);
+        border-radius: 50%;
+        animation: float 20s infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0) translateX(0);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-100vh) translateX(50px);
+          opacity: 0;
+        }
+      }
+
+      /* Container */
+      .container {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Header */
+      header {
+        padding: 20px 16px;
+        backdrop-filter: blur(20px);
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid rgba(138, 180, 248, 0.1);
+      }
+
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      /* Corner nav buttons (Dashboard left, Settings right) */
+      .corner-btn {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        background: rgba(102, 126, 234, 0.08);
+        border: 1px solid rgba(138, 180, 248, 0.15);
+        border-radius: 10px;
+        color: rgba(138, 180, 248, 0.75);
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          color 0.2s,
+          border-color 0.2s;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .corner-btn i {
+        font-size: 1rem;
+      }
+      .corner-btn:hover {
+        background: rgba(102, 126, 234, 0.2);
+        color: #8ab4f8;
+        border-color: rgba(138, 180, 248, 0.35);
+      }
+
+      /* Center cluster: logo + title + status */
+      .header-center {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        justify-content: center;
+      }
+
+      .logo-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo-icon {
+        width: 38px;
+        height: 38px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(102, 126, 234, 0.8);
+        }
+      }
+
+      .logo-icon i {
+        color: #fff;
+        font-size: 24px;
+      }
+
+      .title {
+        color: #fff;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+      }
+
+      .subtitle {
+        color: #8ab4f8;
+        font-size: 11px;
+        margin-top: 2px;
+      }
+
+      .status-indicator {
+        width: 10px;
+        height: 10px;
+        background: #4ade80;
+        border-radius: 50%;
+        animation: blink 2s ease-in-out infinite;
+        box-shadow: 0 0 10px #4ade80;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      /* Chat Container */
+      .chat-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(138, 180, 248, 0.3) transparent;
+      }
+
+      .chat-container::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .chat-container::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .chat-container::-webkit-scrollbar-thumb {
+        background: rgba(138, 180, 248, 0.3);
+        border-radius: 3px;
+      }
+
+      /* Message Bubbles */
+      .message {
+        margin-bottom: 20px;
+        animation: messageSlide 0.3s ease-out;
+      }
+
+      @keyframes messageSlide {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message.bot {
+        display: flex;
+        gap: 10px;
+      }
+
+      .message.user {
+        display: flex;
+        flex-direction: row-reverse;
+        gap: 10px;
+      }
+
+      .avatar {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .avatar.bot {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
+      }
+
+      .avatar.user {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        box-shadow: 0 0 15px rgba(245, 87, 108, 0.5);
+      }
+
+      .avatar i {
+        color: #fff;
+        font-size: 16px;
+      }
+
+      .bubble {
+        max-width: 1000px;
+        padding: 12px 16px;
+        border-radius: 18px;
+        word-wrap: break-word;
+      }
+
+      .bubble.bot {
+        background: rgba(102, 126, 234, 0.15);
+        border: 1px solid rgba(102, 126, 234, 0.3);
+        color: #e8eaed;
+        backdrop-filter: blur(10px);
+      }
+
+      .bubble.user {
+        background: rgba(245, 87, 108, 0.15);
+        border: 1px solid rgba(245, 87, 108, 0.3);
+        color: #e8eaed;
+        backdrop-filter: blur(10px);
+      }
+
+      /* ── Settings Overlay ── */
+      #settings-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(4px);
+        align-items: flex-end;
+        justify-content: center;
+      }
+      #settings-overlay.open {
+        display: flex;
+      }
+      #settings-panel {
+        background: #0f1326;
+        border: 1px solid rgba(138, 180, 248, 0.15);
+        border-radius: 16px 16px 0 0;
+        padding: 24px 22px 28px;
+        width: 100%;
+        max-width: 350px;
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+        animation: slideUp 0.22s ease;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(60px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+      .settings-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .settings-header h2 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: 0.5px;
+      }
+      .settings-close {
+        background: none;
+        border: none;
+        color: rgba(138, 180, 248, 0.6);
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        transition: color 0.2s;
+      }
+      .settings-close:hover {
+        color: #8ab4f8;
+      }
+      .setting-row {
+        margin-bottom: 18px;
+      }
+      .setting-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.78rem;
+        color: rgba(208, 216, 240, 0.85);
+        margin-bottom: 7px;
+      }
+      .setting-label .val-badge {
+        background: rgba(102, 126, 234, 0.25);
+        color: #8ab4f8;
+        border-radius: 8px;
+        padding: 1px 9px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        min-width: 38px;
+        text-align: center;
+      }
+      .setting-desc {
+        font-size: 0.67rem;
+        color: rgba(138, 180, 248, 0.45);
+        margin-bottom: 6px;
+      }
+      input[type="range"].qs-slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 5px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.1);
+        outline: none;
+      }
+      input[type="range"].qs-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        cursor: pointer;
+        box-shadow: 0 0 6px rgba(102, 126, 234, 0.6);
+      }
+      .settings-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 22px;
+      }
+      .btn-save {
+        flex: 1;
+        padding: 10px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      .btn-save:hover {
+        opacity: 0.88;
+      }
+      .btn-reset {
+        padding: 10px 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(138, 180, 248, 0.2);
+        border-radius: 10px;
+        color: rgba(138, 180, 248, 0.7);
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .btn-reset:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      #settings-saved-msg {
+        text-align: center;
+        font-size: 0.75rem;
+        color: #00e5a0;
+        margin-top: 10px;
+        min-height: 18px;
+      }
+
+      /* Input Area */
+      .input-area {
+        padding: 20px;
+        backdrop-filter: blur(20px);
+        background: rgba(255, 255, 255, 0.02);
+        border-top: 1px solid rgba(138, 180, 248, 0.1);
+      }
+
+      .input-container {
+        display: flex;
+        gap: 10px;
+        max-width: 350px;
+        margin: 0 auto;
+        align-items: center;
+      }
+
+      #userInput {
+        flex: 1;
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(138, 180, 248, 0.2);
+        border-radius: 25px;
+        color: #fff;
+        font-size: 14px;
+        outline: none;
+        transition: all 0.3s ease;
+      }
+
+      #userInput:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      #userInput::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      .submit {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      .submit:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      }
+
+      .submit:active {
+        transform: scale(0.95);
+      }
+
+      /* Mode Toggle Button */
+      .mode-toggle {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(138, 180, 248, 0.2);
+        color: #8ab4f8;
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(138, 180, 248, 0.3);
+      }
+
+      .mode-toggle:hover {
+        background: rgba(138, 180, 248, 0.3);
+        transform: scale(1.05);
+      }
+
+      .mode-toggle.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      .mode-indicator {
+        font-size: 10px;
+        color: #8ab4f8;
+        text-align: center;
+        margin-top: 5px;
+        font-weight: 600;
+      }
+
+      /* Autocomplete Suggestions */
+      .suggestions-container {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 350px;
+        margin-bottom: 10px;
+        display: none;
+        background: rgba(10, 14, 39, 0.95);
+        border: 1px solid rgba(138, 180, 248, 0.3);
+        border-radius: 12px;
+        backdrop-filter: blur(20px);
+        overflow: hidden;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .suggestions-container.active {
+        display: block;
+      }
+
+      .suggestion-item {
+        padding: 12px 16px;
+        color: #e8eaed;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid rgba(138, 180, 248, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .suggestion-item:last-child {
+        border-bottom: none;
+      }
+
+      .suggestion-item:hover,
+      .suggestion-item.selected {
+        background: rgba(102, 126, 234, 0.2);
+        padding-left: 20px;
+      }
+
+      .suggestion-item i {
+        color: #8ab4f8;
+        font-size: 12px;
+        width: 16px;
+      }
+
+      .suggestion-text {
+        flex: 1;
+        font-size: 13px;
+      }
+
+      .suggestion-hint {
+        font-size: 10px;
+        color: #8ab4f8;
+        opacity: 0.7;
+      }
+
+      /* Typing Indicator */
+      .typing-indicator {
+        display: none;
+        gap: 4px;
+        padding: 10px;
+      }
+
+      .typing-indicator.active {
+        display: flex;
+      }
+
+      .typing-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #667eea;
+        animation: typing 1.4s infinite;
+      }
+
+      .typing-dot:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .typing-dot:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes typing {
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.7;
+        }
+        30% {
+          transform: translateY(-10px);
+          opacity: 1;
+        }
+      }
+
+      /* Command Hints */
+      .command-hints {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        max-width: 350px;
+        margin: 0px auto 10px;
+      }
+
+      .hint-chip {
+        padding: 6px 12px;
+        background: rgba(138, 180, 248, 0.1);
+        border: 1px solid rgba(138, 180, 248, 0.2);
+        border-radius: 15px;
+        color: #8ab4f8;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .hint-chip:hover {
+        background: rgba(138, 180, 248, 0.2);
+        border-color: #667eea;
+        transform: translateY(-2px);
+      }
+
+      /* Sleep state: red indicator */
+      .status-indicator.sleeping {
+        background: #ef4444;
+        box-shadow: 0 0 10px #ef4444;
+        animation: blink 1.5s ease-in-out infinite;
+      }
+
+      /* Thinking bubble */
+      .thinking-bubble .bubble.bot {
+        background: rgba(102, 126, 234, 0.08);
+        border: 1px solid rgba(102, 126, 234, 0.2);
+        min-width: 180px;
+      }
+
+      .thinking-text {
+        background: linear-gradient(
+          90deg,
+          #8ab4f8 0%,
+          #c084fc 40%,
+          #8ab4f8 80%
+        );
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: shimmerText 2.5s linear infinite;
+        font-style: italic;
+        font-size: 13px;
+      }
+
+      @keyframes shimmerText {
+        0% {
+          background-position: 0% center;
+        }
+        100% {
+          background-position: 200% center;
+        }
+      }
+
+      /* Thinking dots row */
+      .thinking-dots {
+        display: flex;
+        gap: 4px;
+        margin-top: 6px;
+        align-items: center;
+      }
+
+      /* Status wrapper */
+      .status-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .status-label {
+        font-size: 10px;
+        color: #4ade80;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: color 0.4s ease;
+      }
+
+      .status-label.sleeping {
+        color: #ef4444;
+      }
+
+      /* Sound toggle */
+      .sound-toggle {
+        background: none;
+        border: none;
+        color: rgba(138, 180, 248, 0.4);
+        font-size: 13px;
+        cursor: pointer;
+        padding: 4px 6px;
+        transition: color 0.2s ease;
+      }
+
+      .sound-toggle:hover {
+        color: #8ab4f8;
+      }
+      .sound-toggle.muted {
+        color: rgba(138, 180, 248, 0.25);
+      }
+
+      /* Toast notifications */
+      #toast-container {
+        position: fixed;
+        top: 80px;
+        right: 16px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+      }
+
+      .toast {
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-size: 12px;
+        backdrop-filter: blur(20px);
+        border: 1px solid;
+        animation:
+          toastIn 0.3s ease-out,
+          toastOut 0.3s ease-in 2.7s forwards;
+        pointer-events: none;
+        max-width: 240px;
+      }
+
+      .toast.info {
+        background: rgba(102, 126, 234, 0.2);
+        border-color: rgba(102, 126, 234, 0.5);
+        color: #c4cfff;
+      }
+
+      .toast.success {
+        background: rgba(74, 222, 128, 0.15);
+        border-color: rgba(74, 222, 128, 0.4);
+        color: #a7f3c0;
+      }
+
+      .toast.warning {
+        background: rgba(251, 191, 36, 0.15);
+        border-color: rgba(251, 191, 36, 0.4);
+        color: #fde68a;
+      }
+
+      @keyframes toastIn {
+        from {
+          opacity: 0;
+          transform: translateX(40px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      @keyframes toastOut {
+        from {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(40px);
+        }
+      }
+
+      /* Message timestamp */
+      .msg-time {
+        font-size: 10px;
+        color: rgba(138, 180, 248, 0.35);
+        margin-top: 4px;
+        opacity: 1;
+        transition: opacity 0.2s ease;
+        padding: 0 4px;
+      }
+
+      /* .message:hover .msg-time { opacity: 1; } */
+      .message.user .msg-time {
+        text-align: right;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="bg-animation"></div>
 
     <!-- Floating Particles -->
     <script>
-        for (let i = 0; i < 20; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.animationDelay = Math.random() * 20 + 's';
-            particle.style.animationDuration = (15 + Math.random() * 10) + 's';
-            document.body.appendChild(particle);
-        }
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement("div");
+        particle.className = "particle";
+        particle.style.left = Math.random() * 100 + "%";
+        particle.style.animationDelay = Math.random() * 20 + "s";
+        particle.style.animationDuration = 15 + Math.random() * 10 + "s";
+        document.body.appendChild(particle);
+      }
     </script>
 
     <div class="container">
-        <!-- Header -->
-        <header>
-            <div class="header-content">
-                <div class="logo-section">
-                    <div class="logo-icon">
-                        <i class="fas fa-atom"></i>
-                    </div>
-                    <div>
-                        <div class="title">QUANTUM</div>
-                        <div class="subtitle">AI Assistant</div>
-                    </div>
-                </div>
-                <div class="status-wrapper">
-                    <a href="/dashboard.html" target="_blank" class="sound-toggle" title="Open Dashboard" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-chart-bar"></i>
-                    </a>
-                    <button class="sound-toggle" id="soundToggle" title="Toggle sounds">
-                        <i class="fas fa-volume-up"></i>
-                    </button>
-                    <div class="status-indicator" title="Online"></div>
-                    <span class="status-label" id="statusLabel">Awake</span>
-                </div>
-            </div>
-        </header>
+      <!-- Header -->
+      <header>
+        <div class="header-content">
+          <!-- Left corner: Dashboard -->
+          <a href="/dashboard.html" target="_blank" class="corner-btn">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+          </a>
 
-        <!-- Chat Area -->
-        <div class="chat-container" id="messages">
-            <!-- Messages will be added here dynamically -->
+          <!-- Center: Logo + Title + Status + Sound -->
+          <div class="header-center">
+            <div class="logo-section">
+              <div class="logo-icon">
+                <i class="fas fa-atom"></i>
+              </div>
+              <div>
+                <div class="title">QUANTUM</div>
+                <div class="subtitle">AI Assistant</div>
+              </div>
+            </div>
+            <div class="status-wrapper">
+              <div class="status-indicator" title="Online"></div>
+              <span class="status-label" id="statusLabel">Awake</span>
+              <button
+                class="sound-toggle"
+                id="soundToggle"
+                title="Toggle sounds"
+              >
+                <i class="fas fa-volume-up"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right corner: Settings -->
+          <button class="corner-btn" id="settingsBtn">
+            <i class="fa-solid fa-gears"></i> Settings
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Area -->
+      <div class="chat-container" id="messages">
+        <!-- Messages will be added here dynamically -->
+      </div>
+
+      <!-- Input Area -->
+      <div class="input-area" style="position: relative">
+        <!-- Autocomplete Suggestions -->
+        <div class="suggestions-container" id="suggestionsContainer"></div>
+
+        <div class="command-hints" id="commandHints"></div>
+        <div class="input-container">
+          <button
+            id="modeToggle"
+            class="mode-toggle"
+            title="Toggle Voice/Text Mode"
+          >
+            <i class="fas fa-microphone"></i>
+          </button>
+          <input
+            type="text"
+            id="userInput"
+            placeholder="Say 'Quantum' + your command..."
+            autocomplete="off"
+          />
+          <button id="userInputButton" class="submit">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+        <div class="mode-indicator" id="modeIndicator">Voice Mode</div>
+      </div>
+    </div>
+
+    <!-- ── Settings Overlay ── -->
+    <div id="settings-overlay">
+      <div id="settings-panel">
+        <div class="settings-header">
+          <h2>
+            <i
+              class="fas fa-sliders-h"
+              style="color: #667eea; margin-right: 8px"
+            ></i
+            >Settings
+          </h2>
+          <button class="settings-close" id="settingsClose">&times;</button>
         </div>
 
-        <!-- Input Area -->
-        <div class="input-area" style="position: relative;">
-            <!-- Autocomplete Suggestions -->
-            <div class="suggestions-container" id="suggestionsContainer"></div>
-
-            <div class="command-hints" id="commandHints"></div>
-            <div class="input-container">
-                <button id="modeToggle" class="mode-toggle" title="Toggle Voice/Text Mode">
-                    <i class="fas fa-microphone"></i>
-                </button>
-                <input type="text" id="userInput" placeholder="Say 'Quantum' + your command..." autocomplete="off">
-                <button id="userInputButton" class="submit">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-            <div class="mode-indicator" id="modeIndicator">Voice Mode</div>
+        <!-- Gesture Stability -->
+        <div class="setting-row">
+          <div class="setting-label">
+            Gesture Stability
+            <span class="val-badge" id="val-stability">4</span>
+          </div>
+          <div class="setting-desc">
+            Frames before a gesture is confirmed &nbsp;(low = fast, high =
+            stable)
+          </div>
+          <input
+            type="range"
+            class="qs-slider"
+            id="sl-stability"
+            min="1"
+            max="10"
+            step="1"
+            value="4"
+          />
         </div>
+
+        <!-- Pinch Threshold -->
+        <div class="setting-row">
+          <div class="setting-label">
+            Pinch Sensitivity
+            <span class="val-badge" id="val-pinch">0.30</span>
+          </div>
+          <div class="setting-desc">
+            Min displacement to register pinch &nbsp;(low = sensitive, high =
+            stiff)
+          </div>
+          <input
+            type="range"
+            class="qs-slider"
+            id="sl-pinch"
+            min="0.1"
+            max="0.9"
+            step="0.05"
+            value="0.3"
+          />
+        </div>
+
+        <!-- Scroll Speed -->
+        <div class="setting-row">
+          <div class="setting-label">
+            Scroll Speed
+            <span class="val-badge" id="val-scroll">3</span>
+          </div>
+          <div class="setting-desc">Lines scrolled per gesture tick</div>
+          <input
+            type="range"
+            class="qs-slider"
+            id="sl-scroll"
+            min="1"
+            max="10"
+            step="1"
+            value="3"
+          />
+        </div>
+
+        <!-- Cursor Speed -->
+        <div class="setting-row">
+          <div class="setting-label">
+            Cursor Speed
+            <span class="val-badge" id="val-cursor">2.1</span>
+          </div>
+          <div class="setting-desc">
+            Max cursor movement ratio &nbsp;(low = slow/precise, high = fast)
+          </div>
+          <input
+            type="range"
+            class="qs-slider"
+            id="sl-cursor"
+            min="0.5"
+            max="5.0"
+            step="0.1"
+            value="2.1"
+          />
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn-save" id="btnSaveSettings">
+            Save &amp; Apply
+          </button>
+          <button class="btn-reset" id="btnResetSettings">Defaults</button>
+        </div>
+        <div id="settings-saved-msg"></div>
+      </div>
     </div>
 
     <script type="text/javascript" src="js/main.js"></script>
     <script>
-        // Update assistant name dynamically
-        eel.expose(updateAssistantName);
-        function updateAssistantName(newName) {
-            document.querySelector('.title').textContent = newName.toUpperCase();
-            document.title = `${newName} AI Assistant`;
-        }
+      // Update assistant name dynamically
+      eel.expose(updateAssistantName);
+      function updateAssistantName(newName) {
+        document.querySelector(".title").textContent = newName.toUpperCase();
+        document.title = `${newName} AI Assistant`;
+      }
 
-        // Enhanced message display
-        eel.expose(addUserMsg);
-        function addUserMsg(msg) {
-            const container = document.getElementById('messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message user';
-            messageDiv.innerHTML = `
+      // Enhanced message display
+      eel.expose(addUserMsg);
+      function addUserMsg(msg) {
+        const container = document.getElementById("messages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "message user";
+        messageDiv.innerHTML = `
                 <div class="avatar user"><i class="fas fa-user"></i></div>
                 <div>
                     <div class="bubble user">${msg}</div>
                     <div class="msg-time">${getTime()}</div>
                 </div>
             `;
-            container.appendChild(messageDiv);
-            container.scrollTop = container.scrollHeight;
-            playClick();
-            showThinking();
-        }
+        container.appendChild(messageDiv);
+        container.scrollTop = container.scrollHeight;
+        playClick();
+        showThinking();
+      }
 
-        eel.expose(addAppMsg);
-        function addAppMsg(msg) {
-            hideThinking();
-            playChime();
-            const container = document.getElementById('messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message bot';
-            messageDiv.innerHTML = `
+      eel.expose(addAppMsg);
+      function addAppMsg(msg) {
+        hideThinking();
+        playChime();
+        const container = document.getElementById("messages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "message bot";
+        messageDiv.innerHTML = `
                 <div class="avatar bot"><i class="fas fa-robot"></i></div>
                 <div>
                     <div class="bubble bot">${msg}</div>
                     <div class="msg-time">${getTime()}</div>
                 </div>
             `;
-            container.appendChild(messageDiv);
-            container.scrollTop = container.scrollHeight;
-        }
+        container.appendChild(messageDiv);
+        container.scrollTop = container.scrollHeight;
+      }
 
-        // Thinking bubble
-        const thinkingPhrases = [
-            "Wandering through thoughts",
-            "Flabbergasting possibilities",
-            "Pondering the cosmos",
-            "Deciphering quantum patterns",
-            "Calibrating neural pathways",
-            "Synthesizing reality",
-            "Bending spacetime"
-        ];
-        let thinkingInterval = null;
-        let thinkingPhraseIndex = 0;
+      // Thinking bubble
+      const thinkingPhrases = [
+        "Wandering through thoughts",
+        "Flabbergasting possibilities",
+        "Pondering the cosmos",
+        "Deciphering quantum patterns",
+        "Calibrating neural pathways",
+        "Synthesizing reality",
+        "Bending spacetime",
+      ];
+      let thinkingInterval = null;
+      let thinkingPhraseIndex = 0;
 
-        function showThinking() {
-            hideThinking();
-            const container = document.getElementById('messages');
-            const bubble = document.createElement('div');
-            bubble.className = 'message bot thinking-bubble';
-            bubble.id = 'thinking-bubble';
-            bubble.innerHTML = `
+      function showThinking() {
+        hideThinking();
+        const container = document.getElementById("messages");
+        const bubble = document.createElement("div");
+        bubble.className = "message bot thinking-bubble";
+        bubble.id = "thinking-bubble";
+        bubble.innerHTML = `
                 <div class="avatar bot"><i class="fas fa-robot"></i></div>
                 <div class="bubble bot">
                     <span class="thinking-text">${thinkingPhrases[0]}</span>
@@ -718,340 +1112,498 @@
                     </div>
                 </div>
             `;
-            container.appendChild(bubble);
-            container.scrollTop = container.scrollHeight;
-            thinkingPhraseIndex = 0;
-            thinkingInterval = setInterval(() => {
-                thinkingPhraseIndex = (thinkingPhraseIndex + 1) % thinkingPhrases.length;
-                const textEl = document.querySelector('#thinking-bubble .thinking-text');
-                if (textEl) textEl.textContent = thinkingPhrases[thinkingPhraseIndex];
-            }, 1800);
+        container.appendChild(bubble);
+        container.scrollTop = container.scrollHeight;
+        thinkingPhraseIndex = 0;
+        thinkingInterval = setInterval(() => {
+          thinkingPhraseIndex =
+            (thinkingPhraseIndex + 1) % thinkingPhrases.length;
+          const textEl = document.querySelector(
+            "#thinking-bubble .thinking-text",
+          );
+          if (textEl) textEl.textContent = thinkingPhrases[thinkingPhraseIndex];
+        }, 1800);
+      }
+
+      function hideThinking() {
+        if (thinkingInterval) {
+          clearInterval(thinkingInterval);
+          thinkingInterval = null;
+        }
+        const bubble = document.getElementById("thinking-bubble");
+        if (bubble) bubble.remove();
+      }
+
+      // Python can call this to re-show thinking mid-operation
+      eel.expose(showThinkingBubble);
+      function showThinkingBubble() {
+        showThinking();
+      }
+
+      // Sleep / awake status indicator
+      eel.expose(setAwakeStatus);
+      function setAwakeStatus(isAwake) {
+        const dot = document.querySelector(".status-indicator");
+        const label = document.getElementById("statusLabel");
+        if (isAwake) {
+          dot.classList.remove("sleeping");
+          dot.title = "Online";
+          label.textContent = "Awake";
+          label.classList.remove("sleeping");
+        } else {
+          dot.classList.add("sleeping");
+          dot.title = 'Sleeping — say "Quantum wake up"';
+          label.textContent = "Sleeping";
+          label.classList.add("sleeping");
+        }
+      }
+
+      // Mode toggle state
+      let isTextMode = false;
+      let currentSuggestions = [];
+      let selectedSuggestionIndex = -1;
+
+      // Command history
+      let cmdHistory = [];
+      let historyIndex = -1;
+      let historyTempInput = "";
+
+      // Quick command helper
+      function sendCommand(cmd) {
+        const input = document.getElementById("userInput");
+        if (isTextMode) {
+          input.value = cmd; // In text mode, don't add 'quantum'
+        } else {
+          input.value = "quantum " + cmd; // In voice mode, add 'quantum'
+        }
+        document.getElementById("userInputButton").click();
+      }
+
+      // Autocomplete functionality
+      async function updateSuggestions(input) {
+        const suggestionsContainer = document.getElementById(
+          "suggestionsContainer",
+        );
+
+        if (!input || input.length < 2) {
+          suggestionsContainer.classList.remove("active");
+          currentSuggestions = [];
+          return;
         }
 
-        function hideThinking() {
-            if (thinkingInterval) { clearInterval(thinkingInterval); thinkingInterval = null; }
-            const bubble = document.getElementById('thinking-bubble');
-            if (bubble) bubble.remove();
-        }
+        try {
+          const suggestions = await eel.getCommandSuggestions(input)();
+          currentSuggestions = suggestions || [];
 
-        // Python can call this to re-show thinking mid-operation
-        eel.expose(showThinkingBubble);
-        function showThinkingBubble() { showThinking(); }
-
-        // Sleep / awake status indicator
-        eel.expose(setAwakeStatus);
-        function setAwakeStatus(isAwake) {
-            const dot = document.querySelector('.status-indicator');
-            const label = document.getElementById('statusLabel');
-            if (isAwake) {
-                dot.classList.remove('sleeping');
-                dot.title = 'Online';
-                label.textContent = 'Awake';
-                label.classList.remove('sleeping');
-            } else {
-                dot.classList.add('sleeping');
-                dot.title = 'Sleeping — say "Quantum wake up"';
-                label.textContent = 'Sleeping';
-                label.classList.add('sleeping');
-            }
-        }
-
-        // Mode toggle state
-        let isTextMode = false;
-        let currentSuggestions = [];
-        let selectedSuggestionIndex = -1;
-
-        // Command history
-        let cmdHistory = [];
-        let historyIndex = -1;
-        let historyTempInput = '';
-
-        // Quick command helper
-        function sendCommand(cmd) {
-            const input = document.getElementById('userInput');
-            if (isTextMode) {
-                input.value = cmd;  // In text mode, don't add 'quantum'
-            } else {
-                input.value = 'quantum ' + cmd;  // In voice mode, add 'quantum'
-            }
-            document.getElementById('userInputButton').click();
-        }
-
-        // Autocomplete functionality
-        async function updateSuggestions(input) {
-            const suggestionsContainer = document.getElementById('suggestionsContainer');
-
-            if (!input || input.length < 2) {
-                suggestionsContainer.classList.remove('active');
-                currentSuggestions = [];
-                return;
-            }
-
-            try {
-                const suggestions = await eel.getCommandSuggestions(input)();
-                currentSuggestions = suggestions || [];
-
-                if (currentSuggestions.length > 0) {
-                    suggestionsContainer.innerHTML = currentSuggestions.map((suggestion, index) => `
+          if (currentSuggestions.length > 0) {
+            suggestionsContainer.innerHTML = currentSuggestions
+              .map(
+                (suggestion, index) => `
                         <div class="suggestion-item" data-index="${index}" onclick="selectSuggestion('${suggestion}')">
                             <i class="fas fa-terminal"></i>
                             <span class="suggestion-text">${suggestion}</span>
                             <span class="suggestion-hint">↵</span>
                         </div>
-                    `).join('');
-                    suggestionsContainer.classList.add('active');
-                    selectedSuggestionIndex = -1;
-                } else {
-                    suggestionsContainer.classList.remove('active');
-                }
-            } catch (error) {
-                console.error('Error fetching suggestions:', error);
-            }
-        }
-
-        function selectSuggestion(suggestion) {
-            const input = document.getElementById('userInput');
-            input.value = suggestion;
-            document.getElementById('suggestionsContainer').classList.remove('active');
-            currentSuggestions = [];
+                    `,
+              )
+              .join("");
+            suggestionsContainer.classList.add("active");
             selectedSuggestionIndex = -1;
-            input.focus();
+          } else {
+            suggestionsContainer.classList.remove("active");
+          }
+        } catch (error) {
+          console.error("Error fetching suggestions:", error);
         }
+      }
 
-        function highlightSuggestion(index) {
-            const items = document.querySelectorAll('.suggestion-item');
-            items.forEach((item, i) => {
-                if (i === index) {
-                    item.classList.add('selected');
-                } else {
-                    item.classList.remove('selected');
-                }
-            });
+      function selectSuggestion(suggestion) {
+        const input = document.getElementById("userInput");
+        input.value = suggestion;
+        document
+          .getElementById("suggestionsContainer")
+          .classList.remove("active");
+        currentSuggestions = [];
+        selectedSuggestionIndex = -1;
+        input.focus();
+      }
+
+      function highlightSuggestion(index) {
+        const items = document.querySelectorAll(".suggestion-item");
+        items.forEach((item, i) => {
+          if (i === index) {
+            item.classList.add("selected");
+          } else {
+            item.classList.remove("selected");
+          }
+        });
+      }
+
+      // Mode toggle button
+      document
+        .getElementById("modeToggle")
+        .addEventListener("click", function () {
+          isTextMode = !isTextMode;
+          const toggleBtn = document.getElementById("modeToggle");
+          const modeIndicator = document.getElementById("modeIndicator");
+          const userInput = document.getElementById("userInput");
+
+          if (isTextMode) {
+            // Switch to text mode
+            toggleBtn.classList.add("active");
+            toggleBtn.innerHTML = '<i class="fas fa-keyboard"></i>';
+            modeIndicator.textContent = "Text Mode";
+            userInput.placeholder =
+              "Type your command (no wake word needed)...";
+            eel.setTextMode(true);
+          } else {
+            // Switch to voice mode
+            toggleBtn.classList.remove("active");
+            toggleBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            modeIndicator.textContent = "Voice Mode";
+            userInput.placeholder = "Say 'Quantum' + your command...";
+            eel.setTextMode(false);
+          }
+        });
+
+      // Input field event listeners
+      const userInput = document.getElementById("userInput");
+
+      // Handle typing for autocomplete; reset history navigation on any keystroke
+      userInput.addEventListener("input", function (e) {
+        historyIndex = -1;
+        historyTempInput = "";
+        const value = e.target.value.trim();
+        if (isTextMode) {
+          updateSuggestions(value);
         }
+      });
 
-        // Mode toggle button
-        document.getElementById('modeToggle').addEventListener('click', function() {
-            isTextMode = !isTextMode;
-            const toggleBtn = document.getElementById('modeToggle');
-            const modeIndicator = document.getElementById('modeIndicator');
-            const userInput = document.getElementById('userInput');
+      // Handle keyboard navigation
+      userInput.addEventListener("keydown", function (e) {
+        const suggestionsContainer = document.getElementById(
+          "suggestionsContainer",
+        );
 
-            if (isTextMode) {
-                // Switch to text mode
-                toggleBtn.classList.add('active');
-                toggleBtn.innerHTML = '<i class="fas fa-keyboard"></i>';
-                modeIndicator.textContent = 'Text Mode';
-                userInput.placeholder = 'Type your command (no wake word needed)...';
-                eel.setTextMode(true);
+        // Tab key - autocomplete with first suggestion
+        if (e.key === "Tab" && currentSuggestions.length > 0) {
+          e.preventDefault();
+          selectSuggestion(
+            currentSuggestions[
+              selectedSuggestionIndex >= 0 ? selectedSuggestionIndex : 0
+            ],
+          );
+        }
+        // Arrow down — history navigation OR autocomplete (never both)
+        else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          if (historyIndex !== -1) {
+            // Already in history mode — go forward
+            historyIndex++;
+            if (historyIndex >= cmdHistory.length) {
+              historyIndex = -1;
+              userInput.value = "";
             } else {
-                // Switch to voice mode
-                toggleBtn.classList.remove('active');
-                toggleBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-                modeIndicator.textContent = 'Voice Mode';
-                userInput.placeholder = "Say 'Quantum' + your command...";
-                eel.setTextMode(false);
+              userInput.value = cmdHistory[historyIndex];
             }
-        });
+          } else if (currentSuggestions.length > 0) {
+            selectedSuggestionIndex = Math.min(
+              selectedSuggestionIndex + 1,
+              currentSuggestions.length - 1,
+            );
+            highlightSuggestion(selectedSuggestionIndex);
+          }
+        }
+        // Arrow up — enter/continue history (bash-style) OR autocomplete
+        else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          if (userInput.value.trim() === "" || historyIndex !== -1) {
+            // Enter or continue history navigation
+            if (cmdHistory.length > 0) {
+              if (historyIndex === -1) {
+                historyIndex = cmdHistory.length - 1;
+              } else if (historyIndex > 0) {
+                historyIndex--;
+              }
+              userInput.value = cmdHistory[historyIndex];
+            }
+          } else if (currentSuggestions.length > 0) {
+            selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, 0);
+            highlightSuggestion(selectedSuggestionIndex);
+          }
+        }
+        // Escape - close suggestions
+        else if (e.key === "Escape") {
+          suggestionsContainer.classList.remove("active");
+          currentSuggestions = [];
+          selectedSuggestionIndex = -1;
+        }
+        // Enter - submit or select suggestion
+        else if (e.key === "Enter") {
+          if (selectedSuggestionIndex >= 0 && currentSuggestions.length > 0) {
+            e.preventDefault();
+            selectSuggestion(currentSuggestions[selectedSuggestionIndex]);
+          } else {
+            document.getElementById("userInputButton").click();
+          }
+        }
+      });
 
-        // Input field event listeners
-        const userInput = document.getElementById('userInput');
+      // Close suggestions when clicking outside
+      document.addEventListener("click", function (e) {
+        const suggestionsContainer = document.getElementById(
+          "suggestionsContainer",
+        );
+        const input = document.getElementById("userInput");
+        if (e.target !== input && !suggestionsContainer.contains(e.target)) {
+          suggestionsContainer.classList.remove("active");
+          currentSuggestions = [];
+          selectedSuggestionIndex = -1;
+        }
+      });
 
-        // Handle typing for autocomplete; reset history navigation on any keystroke
-        userInput.addEventListener('input', function(e) {
+      // LRU command history helper (max 20 entries)
+      function addToHistory(cmd) {
+        const idx = cmdHistory.indexOf(cmd);
+        if (idx !== -1) cmdHistory.splice(idx, 1); // remove duplicate → will re-add at end
+        cmdHistory.push(cmd); // most recent at end
+        if (cmdHistory.length > 20) cmdHistory.shift(); // evict oldest (LRU)
+      }
+
+      // Send button handler
+      document
+        .getElementById("userInputButton")
+        .addEventListener("click", function () {
+          const input = document.getElementById("userInput");
+          const msg = input.value.trim();
+          if (msg) {
+            addToHistory(msg);
             historyIndex = -1;
-            historyTempInput = '';
-            const value = e.target.value.trim();
-            if (isTextMode) {
-                updateSuggestions(value);
-            }
+            historyTempInput = "";
+            eel.getUserInput(msg);
+            input.value = "";
+          }
+        });
+      // ── Timestamp helper ──────────────────────────────────────────────────
+      function getTime() {
+        const d = new Date();
+        let h = d.getHours(),
+          m = d.getMinutes();
+        const ampm = h >= 12 ? "PM" : "AM";
+        h = h % 12 || 12;
+        return `${h}:${String(m).padStart(2, "0")} ${ampm}`;
+      }
+
+      // ── Toast notifications ───────────────────────────────────────────────
+      const toastContainer = document.createElement("div");
+      toastContainer.id = "toast-container";
+      document.body.appendChild(toastContainer);
+
+      eel.expose(showToast);
+      function showToast(msg, type = "info") {
+        const t = document.createElement("div");
+        t.className = `toast ${type}`;
+        t.textContent = msg;
+        toastContainer.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+      }
+
+      // ── Sound engine (Web Audio API — no external files) ──────────────────
+      let soundEnabled = true;
+      let _audioCtx = null;
+      function getAudioCtx() {
+        if (!_audioCtx)
+          _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return _audioCtx;
+      }
+
+      function playClick() {
+        if (!soundEnabled) return;
+        try {
+          const ctx = getAudioCtx();
+          const o = ctx.createOscillator(),
+            g = ctx.createGain();
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.frequency.value = 700;
+          g.gain.setValueAtTime(0.08, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
+          o.start();
+          o.stop(ctx.currentTime + 0.07);
+        } catch (_) {}
+      }
+
+      function playChime() {
+        if (!soundEnabled) return;
+        try {
+          const ctx = getAudioCtx();
+          [440, 554].forEach((freq, i) => {
+            const o = ctx.createOscillator(),
+              g = ctx.createGain();
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.type = "sine";
+            o.frequency.value = freq;
+            const t = ctx.currentTime + i * 0.13;
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(0.1, t + 0.05);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+            o.start(t);
+            o.stop(t + 0.35);
+          });
+        } catch (_) {}
+      }
+
+      // Sound toggle button
+      const soundBtn = document.getElementById("soundToggle");
+      soundBtn.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        soundBtn.innerHTML = soundEnabled
+          ? '<i class="fas fa-volume-up"></i>'
+          : '<i class="fas fa-volume-mute"></i>';
+        soundBtn.classList.toggle("muted", !soundEnabled);
+      });
+
+      // ── Settings Panel ────────────────────────────────────────────────────
+      const SETTING_DEFAULTS = {
+        gesture_stability: 4,
+        pinch_threshold: 0.3,
+        scroll_speed: 3,
+        cursor_speed: 2.1,
+      };
+
+      function bindSlider(sliderId, badgeId, decimals = 0) {
+        const sl = document.getElementById(sliderId);
+        const badge = document.getElementById(badgeId);
+        if (!sl || !badge) return;
+        const fmt = (v) => parseFloat(v).toFixed(decimals);
+        badge.textContent = fmt(sl.value);
+        sl.addEventListener("input", () => {
+          badge.textContent = fmt(sl.value);
+        });
+      }
+      bindSlider("sl-stability", "val-stability", 0);
+      bindSlider("sl-pinch", "val-pinch", 2);
+      bindSlider("sl-scroll", "val-scroll", 0);
+      bindSlider("sl-cursor", "val-cursor", 1);
+
+      async function loadSettingsIntoPanel() {
+        try {
+          const cfg = await eel.getSettings()();
+          if (cfg && !cfg.error) {
+            const set = (id, key, dec) => {
+              const el = document.getElementById(id);
+              if (el && cfg[key] !== undefined) {
+                el.value = cfg[key];
+                el.dispatchEvent(new Event("input"));
+              }
+            };
+            set("sl-stability", "gesture_stability");
+            set("sl-pinch", "pinch_threshold");
+            set("sl-scroll", "scroll_speed");
+            set("sl-cursor", "cursor_speed");
+          }
+        } catch (e) {}
+      }
+
+      function openSettings() {
+        document.getElementById("settings-overlay").classList.add("open");
+        document.getElementById("settings-saved-msg").textContent = "";
+        loadSettingsIntoPanel();
+      }
+      function closeSettings() {
+        document.getElementById("settings-overlay").classList.remove("open");
+      }
+
+      document
+        .getElementById("settingsBtn")
+        .addEventListener("click", openSettings);
+      document
+        .getElementById("settingsClose")
+        .addEventListener("click", closeSettings);
+      document
+        .getElementById("settings-overlay")
+        .addEventListener("click", function (e) {
+          if (e.target === this) closeSettings();
         });
 
-        // Handle keyboard navigation
-        userInput.addEventListener('keydown', function(e) {
-            const suggestionsContainer = document.getElementById('suggestionsContainer');
-
-            // Tab key - autocomplete with first suggestion
-            if (e.key === 'Tab' && currentSuggestions.length > 0) {
-                e.preventDefault();
-                selectSuggestion(currentSuggestions[selectedSuggestionIndex >= 0 ? selectedSuggestionIndex : 0]);
+      document
+        .getElementById("btnSaveSettings")
+        .addEventListener("click", async () => {
+          const data = {
+            gesture_stability: parseInt(
+              document.getElementById("sl-stability").value,
+            ),
+            pinch_threshold: parseFloat(
+              document.getElementById("sl-pinch").value,
+            ),
+            scroll_speed: parseInt(document.getElementById("sl-scroll").value),
+            cursor_speed: parseFloat(
+              document.getElementById("sl-cursor").value,
+            ),
+          };
+          const msg = document.getElementById("settings-saved-msg");
+          try {
+            const res = await eel.saveSettings(data)();
+            if (res && res.ok) {
+              msg.style.color = "#00e5a0";
+              msg.textContent =
+                "✓ Saved — takes effect on next gesture controller start";
+            } else {
+              msg.style.color = "#f74f7c";
+              msg.textContent = "✗ Could not save settings";
             }
-            // Arrow down — history navigation OR autocomplete (never both)
-            else if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if (historyIndex !== -1) {
-                    // Already in history mode — go forward
-                    historyIndex++;
-                    if (historyIndex >= cmdHistory.length) {
-                        historyIndex = -1;
-                        userInput.value = '';
-                    } else {
-                        userInput.value = cmdHistory[historyIndex];
-                    }
-                } else if (currentSuggestions.length > 0) {
-                    selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, currentSuggestions.length - 1);
-                    highlightSuggestion(selectedSuggestionIndex);
-                }
-            }
-            // Arrow up — enter/continue history (bash-style) OR autocomplete
-            else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if (userInput.value.trim() === '' || historyIndex !== -1) {
-                    // Enter or continue history navigation
-                    if (cmdHistory.length > 0) {
-                        if (historyIndex === -1) {
-                            historyIndex = cmdHistory.length - 1;
-                        } else if (historyIndex > 0) {
-                            historyIndex--;
-                        }
-                        userInput.value = cmdHistory[historyIndex];
-                    }
-                } else if (currentSuggestions.length > 0) {
-                    selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, 0);
-                    highlightSuggestion(selectedSuggestionIndex);
-                }
-            }
-            // Escape - close suggestions
-            else if (e.key === 'Escape') {
-                suggestionsContainer.classList.remove('active');
-                currentSuggestions = [];
-                selectedSuggestionIndex = -1;
-            }
-            // Enter - submit or select suggestion
-            else if (e.key === 'Enter') {
-                if (selectedSuggestionIndex >= 0 && currentSuggestions.length > 0) {
-                    e.preventDefault();
-                    selectSuggestion(currentSuggestions[selectedSuggestionIndex]);
-                } else {
-                    document.getElementById('userInputButton').click();
-                }
-            }
+          } catch (e) {
+            msg.style.color = "#f74f7c";
+            msg.textContent = "✗ Error: " + e;
+          }
         });
 
-        // Close suggestions when clicking outside
-        document.addEventListener('click', function(e) {
-            const suggestionsContainer = document.getElementById('suggestionsContainer');
-            const input = document.getElementById('userInput');
-            if (e.target !== input && !suggestionsContainer.contains(e.target)) {
-                suggestionsContainer.classList.remove('active');
-                currentSuggestions = [];
-                selectedSuggestionIndex = -1;
-            }
+      document
+        .getElementById("btnResetSettings")
+        .addEventListener("click", async () => {
+          document.getElementById("sl-stability").value =
+            SETTING_DEFAULTS.gesture_stability;
+          document.getElementById("sl-pinch").value =
+            SETTING_DEFAULTS.pinch_threshold;
+          document.getElementById("sl-scroll").value =
+            SETTING_DEFAULTS.scroll_speed;
+          document.getElementById("sl-cursor").value =
+            SETTING_DEFAULTS.cursor_speed;
+          ["sl-stability", "sl-pinch", "sl-scroll", "sl-cursor"].forEach((id) =>
+            document.getElementById(id).dispatchEvent(new Event("input")),
+          );
+          document.getElementById("settings-saved-msg").textContent = "";
         });
 
-        // LRU command history helper (max 20 entries)
-        function addToHistory(cmd) {
-            const idx = cmdHistory.indexOf(cmd);
-            if (idx !== -1) cmdHistory.splice(idx, 1); // remove duplicate → will re-add at end
-            cmdHistory.push(cmd);                       // most recent at end
-            if (cmdHistory.length > 20) cmdHistory.shift(); // evict oldest (LRU)
-        }
+      // ── Hint chip rotation ────────────────────────────────────────────────
+      const ALL_HINTS = [
+        { label: "👋 Hello", cmd: "hello" },
+        { label: "🕐 Time", cmd: "time" },
+        { label: "💡 Inspire", cmd: "motivational quote" },
+        { label: "❓ Help", cmd: "help" },
+        { label: "📅 Date", cmd: "date" },
+        { label: "🎵 Music", cmd: "play music" },
+        { label: "📸 Screenshot", cmd: "take screenshot" },
+        { label: "🔋 Battery", cmd: "battery" },
+        { label: "💻 System", cmd: "system info" },
+        { label: "😂 Joke", cmd: "tell me a joke" },
+        { label: "🚀 Gesture", cmd: "gesture mode" },
+        { label: "⚡ Speed", cmd: "speed test" },
+      ];
 
-        // Send button handler
-        document.getElementById('userInputButton').addEventListener('click', function() {
-            const input = document.getElementById('userInput');
-            const msg = input.value.trim();
-            if (msg) {
-                addToHistory(msg);
-                historyIndex = -1;
-                historyTempInput = '';
-                eel.getUserInput(msg);
-                input.value = '';
-            }
-        });
-        // ── Timestamp helper ──────────────────────────────────────────────────
-        function getTime() {
-            const d = new Date();
-            let h = d.getHours(), m = d.getMinutes();
-            const ampm = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            return `${h}:${String(m).padStart(2, '0')} ${ampm}`;
-        }
-
-        // ── Toast notifications ───────────────────────────────────────────────
-        const toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        document.body.appendChild(toastContainer);
-
-        eel.expose(showToast);
-        function showToast(msg, type = 'info') {
-            const t = document.createElement('div');
-            t.className = `toast ${type}`;
-            t.textContent = msg;
-            toastContainer.appendChild(t);
-            setTimeout(() => t.remove(), 3000);
-        }
-
-        // ── Sound engine (Web Audio API — no external files) ──────────────────
-        let soundEnabled = true;
-        let _audioCtx = null;
-        function getAudioCtx() {
-            if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            return _audioCtx;
-        }
-
-        function playClick() {
-            if (!soundEnabled) return;
-            try {
-                const ctx = getAudioCtx();
-                const o = ctx.createOscillator(), g = ctx.createGain();
-                o.connect(g); g.connect(ctx.destination);
-                o.frequency.value = 700;
-                g.gain.setValueAtTime(0.08, ctx.currentTime);
-                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
-                o.start(); o.stop(ctx.currentTime + 0.07);
-            } catch (_) {}
-        }
-
-        function playChime() {
-            if (!soundEnabled) return;
-            try {
-                const ctx = getAudioCtx();
-                [440, 554].forEach((freq, i) => {
-                    const o = ctx.createOscillator(), g = ctx.createGain();
-                    o.connect(g); g.connect(ctx.destination);
-                    o.type = 'sine'; o.frequency.value = freq;
-                    const t = ctx.currentTime + i * 0.13;
-                    g.gain.setValueAtTime(0, t);
-                    g.gain.linearRampToValueAtTime(0.1, t + 0.05);
-                    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
-                    o.start(t); o.stop(t + 0.35);
-                });
-            } catch (_) {}
-        }
-
-        // Sound toggle button
-        const soundBtn = document.getElementById('soundToggle');
-        soundBtn.addEventListener('click', () => {
-            soundEnabled = !soundEnabled;
-            soundBtn.innerHTML = soundEnabled
-                ? '<i class="fas fa-volume-up"></i>'
-                : '<i class="fas fa-volume-mute"></i>';
-            soundBtn.classList.toggle('muted', !soundEnabled);
-        });
-
-        // ── Hint chip rotation ────────────────────────────────────────────────
-        const ALL_HINTS = [
-            { label: '👋 Hello',      cmd: 'hello' },
-            { label: '🕐 Time',       cmd: 'time' },
-            { label: '💡 Inspire',    cmd: 'motivational quote' },
-            { label: '❓ Help',       cmd: 'help' },
-            { label: '📅 Date',       cmd: 'date' },
-            { label: '🎵 Music',      cmd: 'play music' },
-            { label: '📸 Screenshot', cmd: 'take screenshot' },
-            { label: '🔋 Battery',    cmd: 'battery' },
-            { label: '💻 System',     cmd: 'system info' },
-            { label: '😂 Joke',       cmd: 'tell me a joke' },
-            { label: '🚀 Gesture',    cmd: 'gesture mode' },
-            { label: '⚡ Speed',      cmd: 'speed test' },
-        ];
-
-        function renderHints() {
-            const shuffled = [...ALL_HINTS].sort(() => Math.random() - 0.5).slice(0, 4);
-            document.getElementById('commandHints').innerHTML = shuffled
-                .map(h => `<div class="hint-chip" onclick="sendCommand('${h.cmd}')">${h.label}</div>`)
-                .join('');
-        }
-        renderHints();
+      function renderHints() {
+        const shuffled = [...ALL_HINTS]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 4);
+        document.getElementById("commandHints").innerHTML = shuffled
+          .map(
+            (h) =>
+              `<div class="hint-chip" onclick="sendCommand('${h.cmd}')">${h.label}</div>`,
+          )
+          .join("");
+      }
+      renderHints();
     </script>
-</body>
+  </body>
 </html>

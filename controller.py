@@ -91,6 +91,9 @@ class Controller:
     # Cooldown counters to prevent too-rapid scroll/brightness changes
     _scroll_cooldown = 0
     _brightness_cooldown = 0
+    # Tunable settings (overridden by quantum_config.json at startup)
+    _scroll_speed = 3
+    _cursor_speed = 2.1
 
     @staticmethod
     def getpinchylv(hand_result):
@@ -179,7 +182,7 @@ class Controller:
             Controller._scroll_cooldown -= 1
             return
         Controller._scroll_cooldown = 4
-        amount = 3 if Controller.pinchlv > 0.0 else -3
+        amount = Controller._scroll_speed if Controller.pinchlv > 0.0 else -Controller._scroll_speed
         pyautogui.scroll(amount)
 
     @staticmethod
@@ -191,7 +194,7 @@ class Controller:
         Controller._scroll_cooldown = 4
         pyautogui.keyDown('shift')
         pyautogui.keyDown('ctrl')
-        pyautogui.scroll(-3 if Controller.pinchlv > 0.0 else 3)
+        pyautogui.scroll(-Controller._scroll_speed if Controller.pinchlv > 0.0 else Controller._scroll_speed)
         pyautogui.keyUp('ctrl')
         pyautogui.keyUp('shift')
 
@@ -236,7 +239,7 @@ class Controller:
         elif distsq <= 900:
             ratio = 0.07 * (distsq ** (1/2))
         else:
-            ratio = 2.1
+            ratio = Controller._cursor_speed
 
         x, y = x_old + delta_x * ratio, y_old + delta_y * ratio
         return (x, y)
@@ -368,3 +371,14 @@ class Controller:
                 Controller.pinch_control_init(hand_result)
                 Controller.pinchmajorflag = True
             Controller.pinch_control(hand_result, Controller.changesystembrightness, Controller.changesystemvolume)
+
+
+# Apply quantum_config.json settings at import time
+try:
+    from quantum.config_manager import load as _load_cfg
+    _cfg = _load_cfg()
+    Controller.pinch_threshold = float(_cfg.get('pinch_threshold', 0.3))
+    Controller._scroll_speed   = int(_cfg.get('scroll_speed', 3))
+    Controller._cursor_speed   = float(_cfg.get('cursor_speed', 2.1))
+except Exception:
+    pass
