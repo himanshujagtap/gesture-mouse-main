@@ -17,6 +17,7 @@ import app
 import quantum.state as state
 from quantum.audio_io import wish, record_audio, reply
 from quantum.commands import respond
+from quantum.clipboard import start_monitor as _start_clipboard_monitor
 
 # ---------------------------------------------------------------------------
 # Start Eel UI in a background thread
@@ -30,6 +31,9 @@ while not app.ChatBot.started:
 
 # Give Eel a moment to fully initialise
 time.sleep(1)
+
+# Start clipboard history monitor
+_start_clipboard_monitor()
 
 # ---------------------------------------------------------------------------
 # Greet the user

@@ -172,6 +172,13 @@ def respond(voice_data):
 
     app.eel.addUserMsg(voice_data)()
 
+    # Track for dashboard (silent — never raises)
+    try:
+        from quantum import stats as _stats
+        _stats.track_command(voice_data)
+    except Exception:
+        pass
+
     # -----------------------------------------------------------------------
     # SLEEP / WAKE
     # -----------------------------------------------------------------------
@@ -237,7 +244,7 @@ def respond(voice_data):
         now = datetime.datetime.now()
         reply(f"{now.hour} hours {now.minute} minutes and {now.second} seconds")
 
-    elif 'search' in voice_data and 'youtube' not in voice_data and 'github' not in voice_data and 'stackoverflow' not in voice_data:
+    elif 'search' in voice_data and 'youtube' not in voice_data and 'github' not in voice_data and 'stackoverflow' not in voice_data and 'history' not in voice_data and 'search history' not in voice_data:
         query = voice_data.split('search')[1]
         reply('Searching for ' + query)
         url = 'https://google.com/search?q=' + query
@@ -297,6 +304,55 @@ def respond(voice_data):
             keyboard.press('c')
             keyboard.release('c')
         reply('Copied')
+
+    elif 'clipboard history' in voice_data or 'show clipboard' in voice_data or 'clipboard list' in voice_data:
+        from quantum.clipboard import get_history
+        history = get_history()
+        if not history:
+            reply("Your clipboard history is empty. Copy something and I'll start tracking it.")
+        else:
+            lines = [f"{n}. {preview}" for n, preview in history]
+            reply("Here's your clipboard history:<br>" + "<br>".join(lines) + "<br>Say 'paste item 2' to paste any entry.")
+
+    elif 'clear clipboard' in voice_data:
+        from quantum.clipboard import clear_history
+        clear_history()
+        reply("Clipboard history cleared.")
+
+    elif any(kw in voice_data for kw in ('paste item', 'paste number', 'paste entry', 'paste the')):
+        from quantum.clipboard import paste_item, get_history, ordinal
+        import re as _re
+        # Parse ordinals like "paste 2nd item", "paste item 3", "paste the third"
+        ordinal_map = {
+            'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5,
+            'sixth': 6, 'seventh': 7, 'eighth': 8, 'ninth': 9, 'tenth': 10,
+        }
+        n = None
+        for word, num in ordinal_map.items():
+            if word in voice_data:
+                n = num
+                break
+        if n is None:
+            m = _re.search(r'\d+', voice_data)
+            if m:
+                n = int(m.group())
+        if n is None:
+            history = get_history()
+            if history:
+                reply("Which item? Say 'paste item 1' through 'paste item " + str(len(history)) + "'.")
+            else:
+                reply("Clipboard history is empty.")
+        else:
+            ok = paste_item(n)
+            if ok:
+                reply(f"Pasting {ordinal(n)} clipboard item.")
+            else:
+                from quantum.clipboard import get_history as _gh
+                count = len(_gh())
+                if count == 0:
+                    reply("Clipboard history is empty.")
+                else:
+                    reply(f"I only have {count} item{'s' if count > 1 else ''} in clipboard history.")
 
     elif 'page' in voice_data or 'pest' in voice_data or 'paste' in voice_data:
         with keyboard.pressed(CMD_KEY):
@@ -389,6 +445,59 @@ def respond(voice_data):
         else:
             os.system('rundll32.exe user32.dll,LockWorkStation')
         reply("Locking screen")
+
+    # -----------------------------------------------------------------------
+    # FILE SEARCH & OPEN BY VOICE
+    # -----------------------------------------------------------------------
+    elif any(kw in voice_data for kw in ('find file', 'search for file', 'find my', 'find folder', 'search file', 'locate file')):
+        from quantum.file_search import search_files
+        # Strip trigger phrases to get the query
+        query = voice_data
+        for kw in ('find file', 'search for file', 'find my', 'find folder', 'search file', 'locate file'):
+            query = query.replace(kw, '')
+        query = query.strip()
+        if not query:
+            reply("What file are you looking for?")
+        else:
+            reply(f"Searching for '{query}'…")
+            results = search_files(query)
+            state.file_search_results = results
+            if not results:
+                reply(f"No files found matching '{query}'.")
+            else:
+                lines = []
+                for i, (score, path, is_dir) in enumerate(results, 1):
+                    kind = 'Folder' if is_dir else 'File'
+                    name = os.path.basename(path)
+                    lines.append(f"{i}. {kind}: {name}")
+                reply("Found these matches:<br>" + "<br>".join(lines) + "<br>Say 'open file 1' (or whichever number) to open.")
+
+    elif 'open file' in voice_data or 'open result' in voice_data:
+        from quantum.file_search import search_files, open_path
+        # Try to parse a number (e.g. "open file 2")
+        import re as _re
+        m = _re.search(r'\d+', voice_data)
+        if m and state.file_search_results:
+            idx = int(m.group()) - 1
+            if 0 <= idx < len(state.file_search_results):
+                _, path, _ = state.file_search_results[idx]
+                reply(f"Opening {os.path.basename(path)}")
+                open_path(path)
+            else:
+                reply(f"I only have {len(state.file_search_results)} results. Please say a valid number.")
+        else:
+            # No previous results or no number — treat remainder as a fresh query and open best match
+            query = voice_data.replace('open file', '').replace('open result', '').strip()
+            if not query:
+                reply("What file should I open?")
+            else:
+                results = search_files(query)
+                if results:
+                    _, path, _ = results[0]
+                    reply(f"Opening {os.path.basename(path)}")
+                    open_path(path)
+                else:
+                    reply(f"Could not find a file matching '{query}'.")
 
     # -----------------------------------------------------------------------
     # APP CONTROL
@@ -1175,6 +1284,88 @@ def respond(voice_data):
             reply(llm_helper._get_fallback_response("appreciation"))
 
     # -----------------------------------------------------------------------
+    # COMMAND HISTORY
+    # -----------------------------------------------------------------------
+    elif 'history search' in voice_data or 'search history' in voice_data:
+        try:
+            from quantum import stats as _stats
+            import re as _re
+            query = voice_data.replace('history search', '').replace('search history', '').strip()
+            hist = list(reversed(_stats._command_history))   # newest first
+            if not hist:
+                reply("No command history yet this session.")
+            elif not query:
+                # Show most recent 10 without filtering
+                lines = [f"{i+1}. [{h['time']}] {h['cmd']}" for i, h in enumerate(hist[:10])]
+                reply("Recent commands:<br>" + "<br>".join(lines) + "<br>Say 'run history 2' to re-run any entry.")
+                state.file_search_results = [(1.0, h['cmd'], False) for h in hist[:10]]
+            else:
+                matches = [(i, h) for i, h in enumerate(hist) if query in h['cmd'].lower()]
+                if not matches:
+                    reply(f"No history entries match '{query}'.")
+                else:
+                    lines = [f"{n+1}. [{h['time']}] {h['cmd']}" for n, (_, h) in enumerate(matches[:10])]
+                    reply("Matching history entries:\n" + "\n".join(lines) + "\nSay 'run history 1' to re-run.")
+                    # Reuse file_search_results slot to store matched commands
+                    state.file_search_results = [(1.0, h['cmd'], False) for _, h in matches[:10]]
+        except Exception as _e:
+            reply(f"Could not search history: {_e}")
+
+    elif any(kw in voice_data for kw in ('run last command', 'repeat last', 'run again', 'redo last', 'repeat command')):
+        try:
+            from quantum import stats as _stats
+            _META = ('run last command', 'repeat last', 'run again', 'redo last', 'repeat command',
+                     'run history', 'history search', 'search history', 'run command number', 'rerun')
+            # Walk backwards to find the most recent non-meta command
+            last_cmd = None
+            for entry in reversed(_stats._command_history):
+                cmd = entry['cmd']
+                if not any(m in cmd for m in _META):
+                    last_cmd = cmd
+                    break
+            if last_cmd:
+                reply(f"Running again: {last_cmd}")
+                respond(last_cmd)
+            else:
+                reply("No previous command to repeat.")
+        except Exception as _e:
+            reply(f"Could not repeat command: {_e}")
+
+    elif 'run history' in voice_data or 'run command number' in voice_data or 'rerun' in voice_data:
+        import re as _re
+        _META = ('run last command', 'repeat last', 'run again', 'redo last', 'repeat command',
+                 'run history', 'history search', 'search history', 'run command number', 'rerun')
+        m = _re.search(r'\d+', voice_data)
+        if m:
+            n = int(m.group()) - 1
+            # file_search_results holds the last history search results
+            if state.file_search_results and 0 <= n < len(state.file_search_results):
+                _, cmd, _ = state.file_search_results[n]
+                if any(kw in cmd for kw in _META):
+                    reply("That entry is a history command itself — I can't re-run it.")
+                else:
+                    reply(f"Re-running: {cmd}")
+                    respond(cmd)
+            else:
+                # Fall back to raw stats history
+                try:
+                    from quantum import stats as _stats
+                    hist = list(reversed(_stats._command_history))
+                    if 0 <= n < len(hist):
+                        cmd = hist[n]['cmd']
+                        if any(kw in cmd for kw in _META):
+                            reply("That entry is a history command itself — I can't re-run it.")
+                        else:
+                            reply(f"Re-running: {cmd}")
+                            respond(cmd)
+                    else:
+                        reply(f"History only has {len(hist)} entries.")
+                except Exception:
+                    reply("Could not find that history entry.")
+        else:
+            reply("Please say a number, like 'run history 2'.")
+
+    # -----------------------------------------------------------------------
     # HELP
     # -----------------------------------------------------------------------
     elif voice_data == 'help' or voice_data == 'commands' or voice_data == 'what can you do':
@@ -1349,6 +1540,11 @@ def respond(voice_data):
             reply("Opening global search in VS Code")
         else:
             reply("Find in files works in VS Code.")
+    # DASHBOARD
+    # -----------------------------------------------------------------------
+    elif 'show dashboard' in voice_data or 'open dashboard' in voice_data or voice_data == 'dashboard':
+        webbrowser.get().open('http://localhost:27005/dashboard.html')
+        reply("Opening Quantum Dashboard in your browser")
 
     # -----------------------------------------------------------------------
     # FILE NAVIGATION

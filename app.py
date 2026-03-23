@@ -23,9 +23,11 @@ class ChatBot:
         print(f"Text mode: {mode}")
 
     def close_callback(route, websockets):
-        # if not websockets:
-        #     print('Bye!')
-        exit()
+        # Only exit when every browser window/tab has closed.
+        # Navigating between index.html and dashboard.html briefly
+        # drops one connection but the other stays alive — don't exit then.
+        if not websockets:
+            exit()
 
     @eel.expose
     def getUserInput(msg):
@@ -76,6 +78,15 @@ class ChatBot:
             'save file', 'save all',
             'open terminal here', 'new terminal',
             'find in files', 'global search'
+            'find file', 'find folder', 'find my', 'search for file', 'locate file',
+            'open file', 'open result',
+            'clipboard history', 'show clipboard', 'clipboard list',
+            'paste item', 'paste item 1', 'paste item 2', 'paste item 3',
+            'clear clipboard',
+            'history search', 'search history',
+            'run last command', 'repeat last', 'run again',
+            'run history', 'run history 1', 'run history 2',
+            'confirm', 'cancel'
         ]
 
         partial_lower = partial_input.lower().strip()
@@ -92,6 +103,15 @@ class ChatBot:
 
         return suggestions[:5]  # Return max 5 suggestions
     
+    @eel.expose
+    def getDashboardData():
+        """Serve live session + system stats to the dashboard page."""
+        try:
+            from quantum.stats import get_dashboard_data
+            return get_dashboard_data()
+        except Exception as e:
+            return {'error': str(e)}
+
     def close():
         ChatBot.started = False
     

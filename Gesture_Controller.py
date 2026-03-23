@@ -1,6 +1,7 @@
 print("Gesture_Controller top-level executed", flush=True)
 
 import sys
+import os
 
 # Ensure Python version is compatible with Mediapipe
 if sys.version_info < (3, 9):
@@ -166,6 +167,12 @@ class GestureController:
         handmajor = HandRecog(HLabel.MAJOR)
         handminor = HandRecog(HLabel.MINOR)
 
+        # Gesture usage stats (written to gesture_stats.json for the dashboard)
+        import json as _json
+        _gesture_counts = {}
+        _stat_timer = 0
+        _STATS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gesture_stats.json')
+
         if GestureController.cap is None or not GestureController.cap.isOpened():
             logging.error("Camera is not available. Exiting.")
             return
@@ -224,6 +231,18 @@ class GestureController:
                         major_g = handmajor.get_gesture()
                         active_g = minor_g if int(minor_g) == 36 else major_g
                         label = _GESTURE_NAMES.get(int(active_g), str(active_g))
+
+                        # Dashboard stat tracking
+                        _gesture_counts[label] = _gesture_counts.get(label, 0) + 1
+                        _stat_timer += 1
+                        if _stat_timer >= 60:   # write ~every 2 s at 30 fps
+                            try:
+                                with open(_STATS_FILE, 'w') as _sf:
+                                    _json.dump(_gesture_counts, _sf)
+                            except Exception:
+                                pass
+                            _stat_timer = 0
+
                         cv2.rectangle(image, (8, 8), (320, 40), (0, 0, 0), -1)
                         cv2.putText(image, f'Gesture: {label}', (12, 30),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 120), 2)

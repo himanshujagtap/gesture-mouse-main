@@ -31,3 +31,6 @@ pending_confirmation = None
 
 # Gesture recognition subprocess (set when launched via assistant)
 gesture_process = None
+
+# File search results — holds [(score, path, is_dir), ...] from last search
+file_search_results = []

@@ -252,6 +252,25 @@
             align-items: center;
         }
 
+        /* History navigation pill */
+        #history-hint {
+            display: none;
+            position: absolute;
+            top: -26px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(102, 126, 234, 0.85);
+            color: #fff;
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            backdrop-filter: blur(6px);
+            transition: opacity 0.2s;
+        }
+        #history-hint.visible { display: block; }
+
         #userInput {
             flex: 1;
             padding: 12px 20px;
@@ -606,6 +625,9 @@
                     </div>
                 </div>
                 <div class="status-wrapper">
+                    <a href="/dashboard.html" target="_blank" class="sound-toggle" title="Open Dashboard" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-chart-bar"></i>
+                    </a>
                     <button class="sound-toggle" id="soundToggle" title="Toggle sounds">
                         <i class="fas fa-volume-up"></i>
                     </button>
@@ -626,7 +648,8 @@
             <div class="suggestions-container" id="suggestionsContainer"></div>
 
             <div class="command-hints" id="commandHints"></div>
-            <div class="input-container">
+            <div class="input-container" style="position:relative;">
+                <div id="history-hint"></div>
                 <button id="modeToggle" class="mode-toggle" title="Toggle Voice/Text Mode">
                     <i class="fas fa-microphone"></i>
                 </button>
@@ -758,10 +781,27 @@
         let currentSuggestions = [];
         let selectedSuggestionIndex = -1;
 
-        // Command history
-        let cmdHistory = [];
+        // Command history — persisted in localStorage
+        const HISTORY_KEY = 'quantum_cmd_history';
+        const HISTORY_MAX = 50;
+        let cmdHistory = (() => {
+            try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+            catch(e) { return []; }
+        })();
         let historyIndex = -1;
         let historyTempInput = '';
+
+        function showHistoryHint() {
+            const hint = document.getElementById('history-hint');
+            if (!hint) return;
+            if (historyIndex === -1) {
+                hint.classList.remove('visible');
+            } else {
+                const pos = cmdHistory.length - historyIndex;   // 1 = most recent
+                hint.textContent = `↑ History ${pos} / ${cmdHistory.length}`;
+                hint.classList.add('visible');
+            }
+        }
 
         // Quick command helper
         function sendCommand(cmd) {
@@ -857,6 +897,7 @@
         userInput.addEventListener('input', function(e) {
             historyIndex = -1;
             historyTempInput = '';
+            showHistoryHint();
             const value = e.target.value.trim();
             if (isTextMode) {
                 updateSuggestions(value);
@@ -884,6 +925,7 @@
                     } else {
                         userInput.value = cmdHistory[historyIndex];
                     }
+                    showHistoryHint();
                 } else if (currentSuggestions.length > 0) {
                     selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, currentSuggestions.length - 1);
                     highlightSuggestion(selectedSuggestionIndex);
@@ -901,6 +943,7 @@
                             historyIndex--;
                         }
                         userInput.value = cmdHistory[historyIndex];
+                        showHistoryHint();
                     }
                 } else if (currentSuggestions.length > 0) {
                     selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, 0);
@@ -935,12 +978,13 @@
             }
         });
 
-        // LRU command history helper (max 20 entries)
+        // LRU command history helper (max HISTORY_MAX entries, persisted)
         function addToHistory(cmd) {
             const idx = cmdHistory.indexOf(cmd);
-            if (idx !== -1) cmdHistory.splice(idx, 1); // remove duplicate → will re-add at end
-            cmdHistory.push(cmd);                       // most recent at end
-            if (cmdHistory.length > 20) cmdHistory.shift(); // evict oldest (LRU)
+            if (idx !== -1) cmdHistory.splice(idx, 1); // remove duplicate → re-add at end (LRU)
+            cmdHistory.push(cmd);
+            if (cmdHistory.length > HISTORY_MAX) cmdHistory.shift();
+            try { localStorage.setItem(HISTORY_KEY, JSON.stringify(cmdHistory)); } catch(e) {}
         }
 
         // Send button handler
@@ -951,6 +995,7 @@
                 addToHistory(msg);
                 historyIndex = -1;
                 historyTempInput = '';
+                showHistoryHint();
                 eel.getUserInput(msg);
                 input.value = '';
             }
