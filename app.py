@@ -70,6 +70,9 @@ class ChatBot:
             'clipboard history', 'show clipboard', 'clipboard list',
             'paste item', 'paste item 1', 'paste item 2', 'paste item 3',
             'clear clipboard',
+            'history search', 'search history',
+            'run last command', 'repeat last', 'run again',
+            'run history', 'run history 1', 'run history 2',
             'confirm', 'cancel'
         ]
 

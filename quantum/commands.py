@@ -244,7 +244,7 @@ def respond(voice_data):
         now = datetime.datetime.now()
         reply(f"{now.hour} hours {now.minute} minutes and {now.second} seconds")
 
-    elif 'search' in voice_data and 'youtube' not in voice_data and 'github' not in voice_data and 'stackoverflow' not in voice_data:
+    elif 'search' in voice_data and 'youtube' not in voice_data and 'github' not in voice_data and 'stackoverflow' not in voice_data and 'history' not in voice_data and 'search history' not in voice_data:
         query = voice_data.split('search')[1]
         reply('Searching for ' + query)
         url = 'https://google.com/search?q=' + query
@@ -1282,6 +1282,88 @@ def respond(voice_data):
                 reply(llm_helper._get_fallback_response("appreciation"))
         else:
             reply(llm_helper._get_fallback_response("appreciation"))
+
+    # -----------------------------------------------------------------------
+    # COMMAND HISTORY
+    # -----------------------------------------------------------------------
+    elif 'history search' in voice_data or 'search history' in voice_data:
+        try:
+            from quantum import stats as _stats
+            import re as _re
+            query = voice_data.replace('history search', '').replace('search history', '').strip()
+            hist = list(reversed(_stats._command_history))   # newest first
+            if not hist:
+                reply("No command history yet this session.")
+            elif not query:
+                # Show most recent 10 without filtering
+                lines = [f"{i+1}. [{h['time']}] {h['cmd']}" for i, h in enumerate(hist[:10])]
+                reply("Recent commands:<br>" + "<br>".join(lines) + "<br>Say 'run history 2' to re-run any entry.")
+                state.file_search_results = [(1.0, h['cmd'], False) for h in hist[:10]]
+            else:
+                matches = [(i, h) for i, h in enumerate(hist) if query in h['cmd'].lower()]
+                if not matches:
+                    reply(f"No history entries match '{query}'.")
+                else:
+                    lines = [f"{n+1}. [{h['time']}] {h['cmd']}" for n, (_, h) in enumerate(matches[:10])]
+                    reply("Matching history entries:\n" + "\n".join(lines) + "\nSay 'run history 1' to re-run.")
+                    # Reuse file_search_results slot to store matched commands
+                    state.file_search_results = [(1.0, h['cmd'], False) for _, h in matches[:10]]
+        except Exception as _e:
+            reply(f"Could not search history: {_e}")
+
+    elif any(kw in voice_data for kw in ('run last command', 'repeat last', 'run again', 'redo last', 'repeat command')):
+        try:
+            from quantum import stats as _stats
+            _META = ('run last command', 'repeat last', 'run again', 'redo last', 'repeat command',
+                     'run history', 'history search', 'search history', 'run command number', 'rerun')
+            # Walk backwards to find the most recent non-meta command
+            last_cmd = None
+            for entry in reversed(_stats._command_history):
+                cmd = entry['cmd']
+                if not any(m in cmd for m in _META):
+                    last_cmd = cmd
+                    break
+            if last_cmd:
+                reply(f"Running again: {last_cmd}")
+                respond(last_cmd)
+            else:
+                reply("No previous command to repeat.")
+        except Exception as _e:
+            reply(f"Could not repeat command: {_e}")
+
+    elif 'run history' in voice_data or 'run command number' in voice_data or 'rerun' in voice_data:
+        import re as _re
+        _META = ('run last command', 'repeat last', 'run again', 'redo last', 'repeat command',
+                 'run history', 'history search', 'search history', 'run command number', 'rerun')
+        m = _re.search(r'\d+', voice_data)
+        if m:
+            n = int(m.group()) - 1
+            # file_search_results holds the last history search results
+            if state.file_search_results and 0 <= n < len(state.file_search_results):
+                _, cmd, _ = state.file_search_results[n]
+                if any(kw in cmd for kw in _META):
+                    reply("That entry is a history command itself — I can't re-run it.")
+                else:
+                    reply(f"Re-running: {cmd}")
+                    respond(cmd)
+            else:
+                # Fall back to raw stats history
+                try:
+                    from quantum import stats as _stats
+                    hist = list(reversed(_stats._command_history))
+                    if 0 <= n < len(hist):
+                        cmd = hist[n]['cmd']
+                        if any(kw in cmd for kw in _META):
+                            reply("That entry is a history command itself — I can't re-run it.")
+                        else:
+                            reply(f"Re-running: {cmd}")
+                            respond(cmd)
+                    else:
+                        reply(f"History only has {len(hist)} entries.")
+                except Exception:
+                    reply("Could not find that history entry.")
+        else:
+            reply("Please say a number, like 'run history 2'.")
 
     # -----------------------------------------------------------------------
     # HELP
