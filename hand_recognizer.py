@@ -47,6 +47,11 @@ class HandRecog:
         self.frame_count = 0
         self.hand_result = None
         self.hand_label = hand_label
+        try:
+            from quantum.config_manager import load as _load_cfg
+            self._stability = int(_load_cfg().get('gesture_stability', 4))
+        except Exception:
+            self._stability = 4
 
     def update_hand_result(self, hand_result):
         """Update the hand landmarks from MediaPipe."""
@@ -188,7 +193,7 @@ class HandRecog:
         self.prev_gesture = current_gesture
 
         # Update gesture only after 4 consistent frames
-        if self.frame_count > 4:
+        if self.frame_count > self._stability:
             self.ori_gesture = current_gesture
 
         return self.ori_gesture

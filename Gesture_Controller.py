@@ -167,6 +167,13 @@ class GestureController:
         handmajor = HandRecog(HLabel.MAJOR)
         handminor = HandRecog(HLabel.MINOR)
 
+        # Load custom gestures (graceful — missing file or import error = disabled)
+        try:
+            from custom_gesture_recognizer import CustomGestureRecognizer
+            custom_recognizer = CustomGestureRecognizer()
+        except Exception as _e:
+            logging.debug("Custom gesture recognizer not loaded: %s", _e)
+            custom_recognizer = None
         # Gesture usage stats (written to gesture_stats.json for the dashboard)
         import json as _json
         _gesture_counts = {}
@@ -216,6 +223,14 @@ class GestureController:
                             gest_name = handmajor.get_gesture()
                             Controller.handle_controls(gest_name, handmajor.hand_result)
 
+                        # Custom gesture check — both hands checked independently
+                        # (right-hand and left-hand versions of the same pose are separate gestures)
+                        custom_name = None
+                        if custom_recognizer:
+                            custom_name = custom_recognizer.check_and_execute(
+                                GestureController.hr_major, GestureController.hr_minor
+                            )
+
                         for hand_landmarks in results.multi_hand_landmarks:
                             mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
@@ -231,6 +246,8 @@ class GestureController:
                         major_g = handmajor.get_gesture()
                         active_g = minor_g if int(minor_g) == 36 else major_g
                         label = _GESTURE_NAMES.get(int(active_g), str(active_g))
+                        if custom_name:
+                            label = f'Custom: {custom_name}'
 
                         # Dashboard stat tracking
                         _gesture_counts[label] = _gesture_counts.get(label, 0) + 1

@@ -40,6 +40,7 @@ class ChatBot:
         commands = [
             'hello', 'time', 'date', 'search', 'location',
             'launch gesture recognition', 'stop gesture recognition',
+            'train gesture', 'add gesture', 'list custom gestures', 'delete gesture',
             'copy', 'paste', 'change name to', 'rename to', 'call yourself',
             'screenshot', 'scroll up', 'scroll down',
             'volume up', 'volume down', 'mute', 'unmute',
@@ -65,6 +66,19 @@ class ChatBot:
             'good job', 'well done', 'great job', 'thank you',
             'are you alive', 'are you real', 'what do you think about ai',
             'cleanup desktop', 'empty recycle bin', 'startup apps status', 'network speed test',
+            'confirm', 'cancel',
+            # Context-aware commands
+            'what app', 'current app', 'which app',
+            'run code', 'build project', 'run project',
+            'format code', 'format document',
+            'comment line', 'comment out', 'toggle comment',
+            'go to line', 'split editor',
+            'go back', 'go forward',
+            'next tab', 'previous tab',
+            'zoom in', 'zoom out',
+            'save file', 'save all',
+            'open terminal here', 'new terminal',
+            'find in files', 'global search'
             'find file', 'find folder', 'find my', 'search for file', 'locate file',
             'open file', 'open result',
             'clipboard history', 'show clipboard', 'clipboard list',
@@ -72,6 +86,9 @@ class ChatBot:
             'clear clipboard',
             'show conversation history', 'conversation history', 'clear memory',
             'forget conversation', 'reset memory', 'memory status',
+            'history search', 'search history',
+            'run last command', 'repeat last', 'run again',
+            'run history', 'run history 1', 'run history 2',
             'confirm', 'cancel'
         ]
 
@@ -97,6 +114,25 @@ class ChatBot:
             return get_dashboard_data()
         except Exception as e:
             return {'error': str(e)}
+
+    @eel.expose
+    def getSettings():
+        """Return current quantum_config.json as a dict."""
+        try:
+            from quantum.config_manager import load
+            return load()
+        except Exception as e:
+            return {'error': str(e)}
+
+    @eel.expose
+    def saveSettings(data):
+        """Persist settings dict to quantum_config.json."""
+        try:
+            from quantum.config_manager import save
+            ok = save(data)
+            return {'ok': ok}
+        except Exception as e:
+            return {'ok': False, 'error': str(e)}
 
     def close():
         ChatBot.started = False

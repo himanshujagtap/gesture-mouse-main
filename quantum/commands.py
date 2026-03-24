@@ -244,7 +244,7 @@ def respond(voice_data):
         now = datetime.datetime.now()
         reply(f"{now.hour} hours {now.minute} minutes and {now.second} seconds")
 
-    elif 'search' in voice_data and 'youtube' not in voice_data and 'github' not in voice_data and 'stackoverflow' not in voice_data:
+    elif 'search' in voice_data and 'youtube' not in voice_data and 'github' not in voice_data and 'stackoverflow' not in voice_data and 'history' not in voice_data and 'search history' not in voice_data:
         query = voice_data.split('search')[1]
         reply('Searching for ' + query)
         url = 'https://google.com/search?q=' + query
@@ -1314,6 +1314,86 @@ def respond(voice_data):
             reply(f"I have {count} exchange{'s' if count != 1 else ''} in memory (last 8 kept).")
         except Exception:
             reply("Memory not available.")
+    # COMMAND HISTORY
+    # -----------------------------------------------------------------------
+    elif 'history search' in voice_data or 'search history' in voice_data:
+        try:
+            from quantum import stats as _stats
+            import re as _re
+            query = voice_data.replace('history search', '').replace('search history', '').strip()
+            hist = list(reversed(_stats._command_history))   # newest first
+            if not hist:
+                reply("No command history yet this session.")
+            elif not query:
+                # Show most recent 10 without filtering
+                lines = [f"{i+1}. [{h['time']}] {h['cmd']}" for i, h in enumerate(hist[:10])]
+                reply("Recent commands:<br>" + "<br>".join(lines) + "<br>Say 'run history 2' to re-run any entry.")
+                state.file_search_results = [(1.0, h['cmd'], False) for h in hist[:10]]
+            else:
+                matches = [(i, h) for i, h in enumerate(hist) if query in h['cmd'].lower()]
+                if not matches:
+                    reply(f"No history entries match '{query}'.")
+                else:
+                    lines = [f"{n+1}. [{h['time']}] {h['cmd']}" for n, (_, h) in enumerate(matches[:10])]
+                    reply("Matching history entries:\n" + "\n".join(lines) + "\nSay 'run history 1' to re-run.")
+                    # Reuse file_search_results slot to store matched commands
+                    state.file_search_results = [(1.0, h['cmd'], False) for _, h in matches[:10]]
+        except Exception as _e:
+            reply(f"Could not search history: {_e}")
+
+    elif any(kw in voice_data for kw in ('run last command', 'repeat last', 'run again', 'redo last', 'repeat command')):
+        try:
+            from quantum import stats as _stats
+            _META = ('run last command', 'repeat last', 'run again', 'redo last', 'repeat command',
+                     'run history', 'history search', 'search history', 'run command number', 'rerun')
+            # Walk backwards to find the most recent non-meta command
+            last_cmd = None
+            for entry in reversed(_stats._command_history):
+                cmd = entry['cmd']
+                if not any(m in cmd for m in _META):
+                    last_cmd = cmd
+                    break
+            if last_cmd:
+                reply(f"Running again: {last_cmd}")
+                respond(last_cmd)
+            else:
+                reply("No previous command to repeat.")
+        except Exception as _e:
+            reply(f"Could not repeat command: {_e}")
+
+    elif 'run history' in voice_data or 'run command number' in voice_data or 'rerun' in voice_data:
+        import re as _re
+        _META = ('run last command', 'repeat last', 'run again', 'redo last', 'repeat command',
+                 'run history', 'history search', 'search history', 'run command number', 'rerun')
+        m = _re.search(r'\d+', voice_data)
+        if m:
+            n = int(m.group()) - 1
+            # file_search_results holds the last history search results
+            if state.file_search_results and 0 <= n < len(state.file_search_results):
+                _, cmd, _ = state.file_search_results[n]
+                if any(kw in cmd for kw in _META):
+                    reply("That entry is a history command itself — I can't re-run it.")
+                else:
+                    reply(f"Re-running: {cmd}")
+                    respond(cmd)
+            else:
+                # Fall back to raw stats history
+                try:
+                    from quantum import stats as _stats
+                    hist = list(reversed(_stats._command_history))
+                    if 0 <= n < len(hist):
+                        cmd = hist[n]['cmd']
+                        if any(kw in cmd for kw in _META):
+                            reply("That entry is a history command itself — I can't re-run it.")
+                        else:
+                            reply(f"Re-running: {cmd}")
+                            respond(cmd)
+                    else:
+                        reply(f"History only has {len(hist)} entries.")
+                except Exception:
+                    reply("Could not find that history entry.")
+        else:
+            reply("Please say a number, like 'run history 2'.")
 
     # -----------------------------------------------------------------------
     # HELP
@@ -1328,6 +1408,7 @@ def respond(voice_data):
         help_text += "• Music: play music, pause music, next song, previous song <br>"
         help_text += "• Apps: open app [name], close app [name] <br>"
         help_text += "• Gesture: launch gesture recognition, stop gesture recognition <br>"
+        help_text += "• Custom Gestures: train gesture [name], list custom gestures, delete gesture [name] <br>"
         help_text += "• Search: search [query], youtube search [query], github search [query], stackoverflow [query] <br>"
         help_text += "• Tools: calculate [expr], convert [unit], translate [text], define [word], wikipedia [topic], set timer [duration] <br>"
         help_text += "• Files: list (browse root directory) <br>"
@@ -1336,10 +1417,221 @@ def respond(voice_data):
         help_text += "• Fun: joke, flip coin, roll dice, magic 8 ball, motivational quote, random fact, compliment me, roast me, sing, dance <br>"
         help_text += "• About: tell me about yourself, are you alive, thoughts on ai, change name to [name] <br>"
         help_text += "• Easter eggs: good job quantum, well done quantum, thank you quantum <br>"
+        help_text += "• Context-aware (changes by active app): run code, format code, comment line, go to line, split editor, go back, go forward, next tab, previous tab, zoom in/out, save file, save all, open terminal here, find in files, what app <br>"
         help_text += "Say 'quantum' before each command!"
         reply(help_text)
 
     # -----------------------------------------------------------------------
+    # CUSTOM GESTURE MANAGEMENT  (must come BEFORE file navigation so that
+    # "list custom gesture" is not swallowed by the generic 'list' handler)
+    # -----------------------------------------------------------------------
+    elif 'train gesture' in voice_data or 'add gesture' in voice_data:
+        raw = (voice_data.replace('train gesture', '').replace('add gesture', '').strip())
+        # Parse optional action type/value from voice
+        action_type = 'hotkey'
+        action_value = ''
+        for _kw, _at in [('hotkey', 'hotkey'), ('open', 'open_app'), ('type', 'type_text')]:
+            if f' {_kw} ' in f' {raw} ':
+                _parts = raw.split(f' {_kw} ', 1)
+                raw = _parts[0].strip()
+                action_type = _at
+                action_value = _parts[1].strip().replace(' ', '+') if _at == 'hotkey' else _parts[1].strip()
+                break
+        gesture_name = raw.strip().replace(' ', '_') if raw.strip() else ''
+        if not gesture_name:
+            reply("What should the gesture be called? Try: train gesture thumbs_up")
+        else:
+            _trainer_script = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), 'custom_gesture_trainer.py')
+            _cmd = [sys.executable, _trainer_script, '--name', gesture_name,
+                    '--action-type', action_type]
+            if action_value:
+                _cmd += ['--action-value', action_value]
+            reply(f"Opening gesture trainer for '{gesture_name}'. Show your hand and press SPACE 25 times to capture samples, then ENTER to save.")
+            _subprocess.Popen(_cmd)
+
+    elif 'list custom gesture' in voice_data or 'show custom gesture' in voice_data or \
+            'list gesture' in voice_data or 'show gesture' in voice_data:
+        try:
+            import sys as _sys
+            _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+            from custom_gesture_recognizer import CustomGestureRecognizer as _CGR
+            _rec = _CGR()
+            _gdata = _rec._gestures
+            if _gdata:
+                lines = []
+                for _n, _d in sorted(_gdata.items()):
+                    _av = _d.get('action_value', '') or '(no action)'
+                    lines.append(f"{_n} → {_d.get('action_type','hotkey')}: {_av}")
+                reply(f"You have {len(_gdata)} custom gesture(s):<br>" + "<br>".join(lines))
+            else:
+                reply("No custom gestures trained yet. Say 'train gesture [name]' to create one.")
+        except Exception as _e:
+            reply(f"Couldn't load gestures: {_e}")
+
+    elif 'delete gesture' in voice_data or 'remove gesture' in voice_data:
+        raw = (voice_data.replace('delete gesture', '').replace('remove gesture', '').strip())
+        gesture_name = raw.replace(' ', '_') if raw else ''
+        if not gesture_name:
+            reply("Which gesture should I delete? Try: delete gesture thumbs_up")
+        else:
+            try:
+                from custom_gesture_recognizer import CustomGestureRecognizer as _CGR
+                _rec = _CGR()
+                if _rec.delete_gesture(gesture_name):
+                    reply(f"Deleted gesture '{gesture_name}'.")
+                else:
+                    reply(f"No gesture named '{gesture_name}' found.")
+            except Exception as _e:
+                reply(f"Couldn't delete gesture: {_e}")
+    # CONTEXT-AWARE COMMANDS
+    # Behaviour changes based on which app is currently frontmost.
+    # -----------------------------------------------------------------------
+
+    elif 'what app' in voice_data or 'current app' in voice_data or 'which app' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        _category = get_app_category(_app_name)
+        if _app_name:
+            reply(f"You are currently in {_app_name} (category: {_category})")
+        else:
+            reply("I couldn't detect the active application.")
+
+    elif 'run code' in voice_data or 'build project' in voice_data or 'run project' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        _category = get_app_category(_app_name)
+        if _category in ('vscode', 'editor'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', 'shift', 'b')
+            reply(f"Running build task in {_app_name}")
+        elif _category == 'terminal':
+            keyboard.press(Key.up); keyboard.release(Key.up)
+            keyboard.press(Key.enter); keyboard.release(Key.enter)
+            reply("Re-running last command in terminal")
+        else:
+            reply(f"'Run code' works in VS Code or Terminal. Switch there first. (Currently in: {_app_name or 'unknown'})")
+
+    elif 'format code' in voice_data or 'format document' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        _category = get_app_category(_app_name)
+        if _category in ('vscode', 'editor'):
+            pyautogui.hotkey('shift', 'option' if IS_MAC else 'alt', 'f')
+            reply(f"Formatting code in {_app_name}")
+        else:
+            reply(f"Format code works in VS Code. Currently in: {_app_name or 'unknown'}")
+
+    elif 'comment line' in voice_data or 'comment out' in voice_data or 'toggle comment' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('vscode', 'editor'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', '/')
+            reply("Toggled comment")
+        else:
+            reply("Comment shortcut works in VS Code and code editors.")
+
+    elif 'go to line' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        if get_app_category(_app_name) in ('vscode', 'editor'):
+            pyautogui.hotkey('ctrl', 'g')
+            reply("Opening go-to-line in VS Code")
+        else:
+            reply(f"Go to line works in VS Code. Currently in: {_app_name or 'unknown'}")
+
+    elif 'split editor' in voice_data or 'split screen editor' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('vscode', 'editor'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', '\\')
+            reply("Split editor opened")
+        else:
+            reply("Split editor works in VS Code.")
+
+    elif 'go back' in voice_data:
+        from quantum.context import get_app_category
+        _category = get_app_category()
+        if _category in ('browser', 'finder'):
+            pyautogui.hotkey('command' if IS_MAC else 'alt', '[' if IS_MAC else 'left')
+            reply("Going back")
+        else:
+            reply("Go back works in browsers and Finder.")
+
+    elif 'go forward' in voice_data:
+        from quantum.context import get_app_category
+        _category = get_app_category()
+        if _category in ('browser', 'finder'):
+            pyautogui.hotkey('command' if IS_MAC else 'alt', ']' if IS_MAC else 'right')
+            reply("Going forward")
+        else:
+            reply("Go forward works in browsers and Finder.")
+
+    elif 'next tab' in voice_data:
+        from quantum.context import get_app_category
+        _category = get_app_category()
+        if _category == 'browser' and IS_MAC:
+            pyautogui.hotkey('command', 'option', 'right')
+        else:
+            pyautogui.hotkey('ctrl', 'tab')
+        reply("Next tab")
+
+    elif 'previous tab' in voice_data or 'prev tab' in voice_data:
+        from quantum.context import get_app_category
+        _category = get_app_category()
+        if _category == 'browser' and IS_MAC:
+            pyautogui.hotkey('command', 'option', 'left')
+        else:
+            pyautogui.hotkey('ctrl', 'shift', 'tab')
+        reply("Previous tab")
+
+    elif 'zoom in' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('browser', 'vscode', 'editor', 'terminal', 'notes', 'office'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', '=')
+            reply("Zoomed in")
+        else:
+            reply("Zoom in works in browsers, VS Code, and most text apps.")
+
+    elif 'zoom out' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('browser', 'vscode', 'editor', 'terminal', 'notes', 'office'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', '-')
+            reply("Zoomed out")
+        else:
+            reply("Zoom out works in browsers, VS Code, and most text apps.")
+
+    elif 'save file' in voice_data or 'save all' in voice_data:
+        from quantum.context import get_frontmost_app, get_app_category
+        _app_name = get_frontmost_app()
+        _category = get_app_category(_app_name)
+        if 'save all' in voice_data and _category in ('vscode', 'editor'):
+            if IS_MAC:
+                pyautogui.hotkey('command', 'option', 's')
+            else:
+                pyautogui.hotkey('ctrl', 'k', 's')
+            reply(f"Saved all files in {_app_name}")
+        else:
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', 's')
+            reply(f"Saved in {_app_name or 'current app'}")
+
+    elif 'open terminal here' in voice_data or 'new terminal' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() == 'vscode':
+            pyautogui.hotkey('ctrl', '`')
+            reply("Opening integrated terminal in VS Code")
+        elif IS_MAC:
+            import subprocess as _sp
+            _sp.Popen(['open', '-a', 'Terminal'])
+            reply("Opening Terminal")
+        else:
+            import subprocess as _sp
+            _sp.Popen(['cmd.exe'])
+            reply("Opening Command Prompt")
+
+    elif 'find in files' in voice_data or 'global search' in voice_data:
+        from quantum.context import get_app_category
+        if get_app_category() in ('vscode', 'editor'):
+            pyautogui.hotkey('command' if IS_MAC else 'ctrl', 'shift', 'f')
+            reply("Opening global search in VS Code")
+        else:
+            reply("Find in files works in VS Code.")
     # DASHBOARD
     # -----------------------------------------------------------------------
     elif 'show dashboard' in voice_data or 'open dashboard' in voice_data or voice_data == 'dashboard':
