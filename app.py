@@ -113,6 +113,25 @@ class ChatBot:
         except Exception as e:
             return {'error': str(e)}
 
+    @eel.expose
+    def getSettings():
+        """Return current quantum_config.json as a dict."""
+        try:
+            from quantum.config_manager import load
+            return load()
+        except Exception as e:
+            return {'error': str(e)}
+
+    @eel.expose
+    def saveSettings(data):
+        """Persist settings dict to quantum_config.json."""
+        try:
+            from quantum.config_manager import save
+            ok = save(data)
+            return {'ok': ok}
+        except Exception as e:
+            return {'ok': False, 'error': str(e)}
+
     def close():
         ChatBot.started = False
     

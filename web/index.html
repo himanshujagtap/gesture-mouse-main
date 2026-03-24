@@ -82,6 +82,170 @@
             justify-content: space-between;
             max-width: 350px;
             margin: 0 auto;
+            padding: 12px 16px;
+        }
+
+        /* Corner nav buttons */
+        .corner-btn {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            background: rgba(102, 126, 234, 0.08);
+            border: 1px solid rgba(138, 180, 248, 0.15);
+            border-radius: 10px;
+            color: rgba(138, 180, 248, 0.75);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .corner-btn i { font-size: 1rem; }
+        .corner-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #8ab4f8;
+            border-color: rgba(138, 180, 248, 0.35);
+        }
+
+        /* Center cluster */
+        .header-center {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        /* ── Settings Overlay ── */
+        #settings-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            align-items: flex-end;
+            justify-content: center;
+        }
+        #settings-overlay.open { display: flex; }
+        #settings-panel {
+            background: #0f1326;
+            border: 1px solid rgba(138, 180, 248, 0.15);
+            border-radius: 16px 16px 0 0;
+            padding: 24px 22px 28px;
+            width: 100%;
+            max-width: 350px;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.22s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(60px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        .settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .settings-header h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+        .settings-close {
+            background: none;
+            border: none;
+            color: rgba(138, 180, 248, 0.6);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: color 0.2s;
+        }
+        .settings-close:hover { color: #8ab4f8; }
+        .setting-row { margin-bottom: 18px; }
+        .setting-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
+            color: rgba(208, 216, 240, 0.85);
+            margin-bottom: 7px;
+        }
+        .setting-label .val-badge {
+            background: rgba(102, 126, 234, 0.25);
+            color: #8ab4f8;
+            border-radius: 8px;
+            padding: 1px 9px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            min-width: 38px;
+            text-align: center;
+        }
+        .setting-desc {
+            font-size: 0.67rem;
+            color: rgba(138, 180, 248, 0.45);
+            margin-bottom: 6px;
+        }
+        input[type="range"].qs-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+        input[type="range"].qs-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(102, 126, 234, 0.6);
+        }
+        .settings-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 22px;
+        }
+        .btn-save {
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-save:hover { opacity: 0.88; }
+        .btn-reset {
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(138, 180, 248, 0.2);
+            border-radius: 10px;
+            color: rgba(138, 180, 248, 0.7);
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-reset:hover { background: rgba(255, 255, 255, 0.1); }
+        #settings-saved-msg {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #00e5a0;
+            margin-top: 10px;
+            min-height: 18px;
         }
 
         .logo-section {
@@ -615,25 +779,35 @@
         <!-- Header -->
         <header>
             <div class="header-content">
-                <div class="logo-section">
-                    <div class="logo-icon">
-                        <i class="fas fa-atom"></i>
+                <!-- Left corner: Dashboard -->
+                <a href="/dashboard.html" target="_blank" class="corner-btn">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard
+                </a>
+
+                <!-- Center: Logo + Title + Status + Sound -->
+                <div class="header-center">
+                    <div class="logo-section">
+                        <div class="logo-icon">
+                            <i class="fas fa-atom"></i>
+                        </div>
+                        <div>
+                            <div class="title">QUANTUM</div>
+                            <div class="subtitle">AI Assistant</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="title">QUANTUM</div>
-                        <div class="subtitle">AI Assistant</div>
+                    <div class="status-wrapper">
+                        <div class="status-indicator" title="Online"></div>
+                        <span class="status-label" id="statusLabel">Awake</span>
+                        <button class="sound-toggle" id="soundToggle" title="Toggle sounds">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="status-wrapper">
-                    <a href="/dashboard.html" target="_blank" class="sound-toggle" title="Open Dashboard" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-chart-bar"></i>
-                    </a>
-                    <button class="sound-toggle" id="soundToggle" title="Toggle sounds">
-                        <i class="fas fa-volume-up"></i>
-                    </button>
-                    <div class="status-indicator" title="Online"></div>
-                    <span class="status-label" id="statusLabel">Awake</span>
-                </div>
+
+                <!-- Right corner: Settings -->
+                <button class="corner-btn" id="settingsBtn">
+                    <i class="fa-solid fa-gears"></i> Settings
+                </button>
             </div>
         </header>
 
@@ -659,6 +833,50 @@
                 </button>
             </div>
             <div class="mode-indicator" id="modeIndicator">Voice Mode</div>
+        </div>
+    </div>
+
+    <!-- ── Settings Overlay ── -->
+    <div id="settings-overlay">
+        <div id="settings-panel">
+            <div class="settings-header">
+                <h2><i class="fas fa-sliders-h" style="color:#667eea;margin-right:8px"></i>Settings</h2>
+                <button class="settings-close" id="settingsClose">&times;</button>
+            </div>
+
+            <!-- Gesture Stability -->
+            <div class="setting-row">
+                <div class="setting-label">Gesture Stability <span class="val-badge" id="val-stability">4</span></div>
+                <div class="setting-desc">Frames before a gesture is confirmed &nbsp;(low = fast, high = stable)</div>
+                <input type="range" class="qs-slider" id="sl-stability" min="1" max="10" step="1" value="4" />
+            </div>
+
+            <!-- Pinch Threshold -->
+            <div class="setting-row">
+                <div class="setting-label">Pinch Sensitivity <span class="val-badge" id="val-pinch">0.30</span></div>
+                <div class="setting-desc">Min displacement to register pinch &nbsp;(low = sensitive, high = stiff)</div>
+                <input type="range" class="qs-slider" id="sl-pinch" min="0.1" max="0.9" step="0.05" value="0.3" />
+            </div>
+
+            <!-- Scroll Speed -->
+            <div class="setting-row">
+                <div class="setting-label">Scroll Speed <span class="val-badge" id="val-scroll">3</span></div>
+                <div class="setting-desc">Lines scrolled per gesture tick</div>
+                <input type="range" class="qs-slider" id="sl-scroll" min="1" max="10" step="1" value="3" />
+            </div>
+
+            <!-- Cursor Speed -->
+            <div class="setting-row">
+                <div class="setting-label">Cursor Speed <span class="val-badge" id="val-cursor">2.1</span></div>
+                <div class="setting-desc">Max cursor movement ratio &nbsp;(low = slow/precise, high = fast)</div>
+                <input type="range" class="qs-slider" id="sl-cursor" min="0.5" max="5.0" step="0.1" value="2.1" />
+            </div>
+
+            <div class="settings-actions">
+                <button class="btn-save" id="btnSaveSettings">Save &amp; Apply</button>
+                <button class="btn-reset" id="btnResetSettings">Defaults</button>
+            </div>
+            <div id="settings-saved-msg"></div>
         </div>
     </div>
 
@@ -1086,6 +1304,88 @@
             { label: '🚀 Gesture',    cmd: 'gesture mode' },
             { label: '⚡ Speed',      cmd: 'speed test' },
         ];
+
+        // ── Settings Panel ─────────────────────────────────────────────────
+        const SETTING_DEFAULTS = {
+            gesture_stability: 4, pinch_threshold: 0.3,
+            scroll_speed: 3,      cursor_speed: 2.1,
+        };
+        function bindSlider(sliderId, badgeId, decimals = 0) {
+            const sl = document.getElementById(sliderId);
+            const badge = document.getElementById(badgeId);
+            if (!sl || !badge) return;
+            const fmt = (v) => parseFloat(v).toFixed(decimals);
+            badge.textContent = fmt(sl.value);
+            sl.addEventListener('input', () => { badge.textContent = fmt(sl.value); });
+        }
+        bindSlider('sl-stability', 'val-stability', 0);
+        bindSlider('sl-pinch',     'val-pinch',     2);
+        bindSlider('sl-scroll',    'val-scroll',    0);
+        bindSlider('sl-cursor',    'val-cursor',    1);
+
+        async function loadSettingsIntoPanel() {
+            try {
+                const cfg = await eel.getSettings()();
+                if (cfg && !cfg.error) {
+                    const set = (id, key) => {
+                        const el = document.getElementById(id);
+                        if (el && cfg[key] !== undefined) {
+                            el.value = cfg[key];
+                            el.dispatchEvent(new Event('input'));
+                        }
+                    };
+                    set('sl-stability', 'gesture_stability');
+                    set('sl-pinch',     'pinch_threshold');
+                    set('sl-scroll',    'scroll_speed');
+                    set('sl-cursor',    'cursor_speed');
+                }
+            } catch(e) {}
+        }
+        function openSettings() {
+            document.getElementById('settings-overlay').classList.add('open');
+            document.getElementById('settings-saved-msg').textContent = '';
+            loadSettingsIntoPanel();
+        }
+        function closeSettings() {
+            document.getElementById('settings-overlay').classList.remove('open');
+        }
+        document.getElementById('settingsBtn').addEventListener('click', openSettings);
+        document.getElementById('settingsClose').addEventListener('click', closeSettings);
+        document.getElementById('settings-overlay').addEventListener('click', function(e) {
+            if (e.target === this) closeSettings();
+        });
+        document.getElementById('btnSaveSettings').addEventListener('click', async () => {
+            const data = {
+                gesture_stability: parseInt(document.getElementById('sl-stability').value),
+                pinch_threshold:   parseFloat(document.getElementById('sl-pinch').value),
+                scroll_speed:      parseInt(document.getElementById('sl-scroll').value),
+                cursor_speed:      parseFloat(document.getElementById('sl-cursor').value),
+            };
+            const msg = document.getElementById('settings-saved-msg');
+            try {
+                const res = await eel.saveSettings(data)();
+                if (res && res.ok) {
+                    msg.style.color = '#00e5a0';
+                    msg.textContent = '✓ Saved — takes effect on next gesture controller start';
+                } else {
+                    msg.style.color = '#f74f7c';
+                    msg.textContent = '✗ Could not save settings';
+                }
+            } catch(e) {
+                msg.style.color = '#f74f7c';
+                msg.textContent = '✗ Error: ' + e;
+            }
+        });
+        document.getElementById('btnResetSettings').addEventListener('click', async () => {
+            document.getElementById('sl-stability').value = SETTING_DEFAULTS.gesture_stability;
+            document.getElementById('sl-pinch').value     = SETTING_DEFAULTS.pinch_threshold;
+            document.getElementById('sl-scroll').value    = SETTING_DEFAULTS.scroll_speed;
+            document.getElementById('sl-cursor').value    = SETTING_DEFAULTS.cursor_speed;
+            ['sl-stability','sl-pinch','sl-scroll','sl-cursor'].forEach(id =>
+                document.getElementById(id).dispatchEvent(new Event('input'))
+            );
+            document.getElementById('settings-saved-msg').textContent = '';
+        });
 
         function renderHints() {
             const shuffled = [...ALL_HINTS].sort(() => Math.random() - 0.5).slice(0, 4);
